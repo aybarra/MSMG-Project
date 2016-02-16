@@ -1,3 +1,5 @@
+extensions [ gis ]
+
 breed [sheep a-sheep]
 breed [shepherds shepherd]
 
@@ -5,7 +7,16 @@ globals
 [
   sheepless-neighborhoods       ;; how many patches have no sheep in any neighboring patches?
   herding-efficiency            ;; measures how well-herded the sheep are
+  mouse-was-down?
+  tunisia0-dataset
+  tunisia1-dataset
+  tunisia2-dataset
 ]
+
+breed [ city-labels city-label ]
+breed [ country-labels country-label ]
+breed [ country-vertices country-vertex ]
+
 patches-own
 [
   sheep-nearby                  ;; how many sheep in neighboring patches?
@@ -18,7 +29,21 @@ shepherds-own
 
 to setup
   clear-all
-  import-drawing "map.png"
+
+  ;; gis:load-coordinate-system (word "data/" projection ".prj")
+
+  ;; Load the countries dataset
+  set tunisia0-dataset gis:load-dataset "TUN_adm/TUN_adm0.shp"
+  set tunisia1-dataset gis:load-dataset "TUN_adm/TUN_adm1.shp"
+  set tunisia2-dataset gis:load-dataset "TUN_adm/TUN_adm2.shp"
+
+  ;; Set the envelope
+  gis:set-world-envelope (gis:envelope-union-of (gis:envelope-of tunisia0-dataset)
+    (gis:envelope-of tunisia1-dataset)
+    (gis:envelope-of tunisia2-dataset))
+
+  display-tunisia
+
   set-default-shape sheep "person"
   set-default-shape shepherds "person"
   ask patches
@@ -35,6 +60,17 @@ to setup
       setxy 45 random-ycor ]
   reset-ticks
 end
+
+; Drawing polygon data from a shapefile
+to display-tunisia
+  ;; ask country-labels [ die ]
+  gis:set-drawing-color white
+  ;; gis:draw tunisia0-dataset 1
+  gis:draw tunisia1-dataset 1
+  ;; gis:draw tunisia2-dataset 1
+
+end
+
 
 to update-sheep-counts
   ask patches
@@ -100,7 +136,7 @@ end
 GRAPHICS-WINDOW
 210
 10
-883
+1013
 704
 -1
 -1
@@ -115,7 +151,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-50
+60
 -50
 0
 0
@@ -133,7 +169,7 @@ num-allies
 num-allies
 0
 100
-57
+85
 1
 1
 NIL
@@ -163,7 +199,7 @@ ally-speed
 ally-speed
 0
 100
-49
+73
 1
 1
 NIL
@@ -202,6 +238,34 @@ NIL
 NIL
 NIL
 1
+
+BUTTON
+41
+328
+182
+361
+NIL
+display-countries
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+27
+388
+178
+421
+label-countries
+label-countries
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
