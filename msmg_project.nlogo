@@ -1,7 +1,9 @@
 extensions [ gis ]
 
-breed [sheep a-sheep]
-breed [shepherds shepherd]
+;breed [sheep a-sheep]
+;breed [shepherds shepherd]
+breed [allies ally]
+breed [axis an-axis]
 
 globals
 [
@@ -21,11 +23,16 @@ patches-own
 [
   sheep-nearby                  ;; how many sheep in neighboring patches?
 ]
-shepherds-own
+
+turtles-own
 [
-  carried-sheep         ;; the sheep I'm carrying (or nobody if I'm not carrying in)
-  found-herd?           ;; becomes true when I find a herd to drop it in
+  health
 ]
+;shepherds-own
+;[
+;  carried-sheep         ;; the sheep I'm carrying (or nobody if I'm not carrying in)
+;  found-herd?           ;; becomes true when I find a herd to drop it in
+;]
 
 to setup
   clear-all
@@ -44,20 +51,23 @@ to setup
 
   display-tunisia
 
-  set-default-shape sheep "person"
-  set-default-shape shepherds "person"
+  set-default-shape allies "person"
+  set-default-shape axis "person"
   ask patches
-    [ set pcolor 37 + (random-float 0.8) - 0.4]   ;; varying the brown just makes it look nicer
-  create-sheep num-allies
-    [ set color blue
-      set size 1.5  ;; easier to see
-      setxy 5 random-ycor ]
-  create-shepherds num-axis
-    [ set color red
-      set size 1.5  ;; easier to see
-      set carried-sheep nobody
-      set found-herd? false
-      setxy 45 random-ycor ]
+    [ set pcolor 37 + (random-float 0.8) - 0.4]   ;; varying the brown to make sandy effect
+
+  create-allies num-allies
+  [ set color blue
+    set size 1.5
+    setxy 5 random-ycor
+    set heading 90
+    set health 200 ]
+  create-axis num-axis
+  [ set color red
+    set size 1.5
+    setxy 45 random-ycor
+    set heading 270
+    set health 200 ]
   reset-ticks
 end
 
@@ -71,63 +81,106 @@ to display-tunisia
 
 end
 
-
-to update-sheep-counts
-  ask patches
-    [ set sheep-nearby (sum [count sheep-here] of neighbors) ]
-  set sheepless-neighborhoods (count patches with [sheep-nearby = 0])
-end
-
-to calculate-herding-efficiency
-  set herding-efficiency (sheepless-neighborhoods / (count patches with [not any? sheep-here])) * 100
-end
-
 to go
-  ask shepherds
-  [ ifelse carried-sheep = nobody
-      [ search-for-sheep ]     ;; find a sheep and pick it up
-    [ ifelse found-herd?
-        [ find-empty-spot ]  ;; find an empty spot to drop the sheep
-      [ find-new-herd ] ]  ;; find a herd to drop the sheep in
-    wiggle
-    fd 1
-    if carried-sheep != nobody
-    ;; bring my sheep to where I just moved to
-    [ ask carried-sheep [ move-to myself ] ] ]
-  ask sheep with [not hidden?]
-  [ wiggle
-    fd ally-speed ]
+;  ask shepherds
+;  [ ifelse carried-sheep = nobody
+;      [ search-for-sheep ]     ;; find a sheep and pick it up
+;    [ ifelse found-herd?
+;        [ find-empty-spot ]  ;; find an empty spot to drop the sheep
+;      [ find-new-herd ] ]  ;; find a herd to drop the sheep in
+;    wiggle
+;    fd 1
+;    if carried-sheep != nobody
+;    ;; bring my sheep to where I just moved to
+;    [ ask carried-sheep [ move-to myself ] ] ]
+;  ask sheep with [not hidden?]
+;  [ wiggle
+;    fd ally-speed ]
+  let threshold 10
+  let enemy_distance 20
+  ;; Only for movement
+  ask turtles [
+    ;; So long as there's not an opposing force blocking my path move left or right respectively
+    ifelse not any? turtles with [ breed != [ breed ] of myself and abs (xcor - [ xcor ] of myself) < threshold ] [
+      move
+    ]
+    [
+      if breed = allies [
+      ;; let x min-one-of other axis in-radius threshold [distance myself]
+        ask axis in-radius enemy_distance [
+          set health health - 1
+        ]
+      ;; set health health - 1
+      ]
+      if breed = axis [
+        ;; let x min-one-of other allies in-radius threshold [distance myself]
+        ;; set health health - 1
+        ask allies in-radius enemy_distance [
+          set health health - 1
+        ]
+      ]
+    ]
+  ]
+
+  ;; Kill off any troop that health has reached 0
+  check-death
   tick
+end
+
+to check-death
+  ask turtles [
+    if health <= 0 [ die ]
+  ]
+end
+
+;; Something simple....I'll have them move to the left or right
+to move
+  if breed = allies [
+    forward 1
+  ]
+  if breed = axis [
+    forward 1
+  ]
 end
 
 to wiggle        ;; turtle procedure
   rt random 50 - random 50
 end
 
-to search-for-sheep ;; shepherds procedure
-  set carried-sheep one-of sheep-here with [not hidden?]
-  if (carried-sheep != nobody)
-    [ ask carried-sheep
-        [ hide-turtle ]  ;; make the sheep invisible to other shepherds
-      set color blue     ;; turn shepherd blue while carrying sheep
-      fd 1 ]
-end
+;to update-sheep-counts
+;  ask patches
+;    [ set sheep-nearby (sum [count sheep-here] of neighbors) ]
+;  set sheepless-neighborhoods (count patches with [sheep-nearby = 0])
+;end
 
-to find-new-herd ;; shepherds procedure
-  if any? sheep-here with [not hidden?]
-    [ set found-herd? true ]
-end
+;to calculate-herding-efficiency
+;  set herding-efficiency (sheepless-neighborhoods / (count patches with [not any? sheep-here])) * 100
+;end
 
-to find-empty-spot ;; shepherds procedure
-  if all? sheep-here [hidden?]
-    [ ask carried-sheep
-        [ show-turtle ]       ;; make the sheep visible again
-      set color brown         ;; set my own color back to brown
-      set carried-sheep nobody
-      set found-herd? false
-      rt random 360
-      fd 20 ]
-end
+;to search-for-sheep ;; shepherds procedure
+;  set carried-sheep one-of sheep-here with [not hidden?]
+;  if (carried-sheep != nobody)
+;    [ ask carried-sheep
+;        [ hide-turtle ]  ;; make the sheep invisible to other shepherds
+;      set color blue     ;; turn shepherd blue while carrying sheep
+;      fd 1 ]
+;end
+;
+;to find-new-herd ;; shepherds procedure
+;  if any? sheep-here with [not hidden?]
+;    [ set found-herd? true ]
+;end
+;
+;to find-empty-spot ;; shepherds procedure
+;  if all? sheep-here [hidden?]
+;    [ ask carried-sheep
+;        [ show-turtle ]       ;; make the sheep visible again
+;      set color brown         ;; set my own color back to brown
+;      set carried-sheep nobody
+;      set found-herd? false
+;      rt random 360
+;      fd 20 ]
+;end
 
 
 ; Copyright 1998 Uri Wilensky.
@@ -169,7 +222,7 @@ num-allies
 num-allies
 0
 100
-85
+54
 1
 1
 NIL
@@ -185,21 +238,6 @@ num-axis
 0
 100
 52
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-20
-170
-192
-203
-ally-speed
-ally-speed
-0
-100
-73
 1
 1
 NIL
@@ -239,70 +277,42 @@ NIL
 NIL
 1
 
-BUTTON
-41
-328
-182
-361
-NIL
-display-countries
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SWITCH
-27
-388
-178
-421
-label-countries
-label-countries
-1
-1
--1000
-
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+Basic simulation with GIS data map of Tunisia placed in the background
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+GIS extension is used for the map data, the rest of the turtles themselves (allies and axis) were created based off the sample sheep and shepherds simulation
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+Currently the only supported user interaction comes from the two sliders that represent the number of starting 'troops' for each side.
 
 ## THINGS TO NOTICE
 
-(suggested things for the user to notice while running the model)
+Blue represents allies, red represents axis forces
 
 ## THINGS TO TRY
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+Try out the sliders to see which side kills off the other and advances
 
 ## EXTENDING THE MODEL
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+We plan on adding more inputs, abstract the forces to the macro level, but also zoom in on the Sidi Bouzid area to concentrate on a hypothetical strategy that ties in with our new research question.
 
 ## NETLOGO FEATURES
 
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+n/a
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+Sheep and Shepherds example
 
 ## CREDITS AND REFERENCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+Credit to author: Uri Wilensky for base sheep and shepherd implementation
 @#$#@#$#@
 default
 true
