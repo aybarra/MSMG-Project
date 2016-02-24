@@ -4,6 +4,9 @@ extensions [ gis ]
 ;breed [shepherds shepherd]
 breed [allies ally]
 breed [axis an-axis]
+breed [mountains a-mountain]
+breed [armour-allies ar-ally]
+breed [armour-axis ar-axis]
 
 globals
 [
@@ -13,6 +16,9 @@ globals
   tunisia0-dataset
   tunisia1-dataset
   tunisia2-dataset
+  screen-size
+  axis-grouping-radius
+  allies-grouping-radius
 ]
 
 breed [ city-labels city-label ]
@@ -49,26 +55,73 @@ to setup
     (gis:envelope-of tunisia1-dataset)
     (gis:envelope-of tunisia2-dataset))
 
-  display-tunisia
+  set screen-size (max-pxcor - min-pxcor) * (max-pycor - min-pycor)
+  ;; display-tunisia
 
-  set-default-shape allies "person"
-  set-default-shape axis "person"
-  ask patches
-    [ set pcolor 37 + (random-float 0.8) - 0.4]   ;; varying the brown to make sandy effect
+  file-open "mtn-locs.txt"
+  import-drawing "battle_area.png"
+  ;; import-pcolors "battle_area.png"
 
-  create-allies num-allies
-  [ set color blue
-    set size 1.5
-    setxy 5 random-ycor
-    set heading 90
-    set health 200 ]
+  set axis-grouping-radius 5
+  set allies-grouping-radius 5
+  place-axis
+  place-armour-axis
+
+  place-allies
+  place-armour-allies
+
+  set-default-shape allies "square"
+  set-default-shape axis "square"
+  set-default-shape armour-axis "triangle"
+  set-default-shape armour-allies "triangle"
+
+  ;;ask patches
+  ;;  [ set pcolor 37 + (random-float 0.8) - 0.4]   ;; varying the brown to make sandy effect
+
+  reset-ticks
+end
+
+to place-mountains
+  create-mountains 100
+  [ set color [139 69 19 125]
+
+  ]
+end
+to place-axis
   create-axis num-axis
-  [ set color red
+  [ set color [255 0 0 125]
     set size 1.5
-    setxy 45 random-ycor
+    setxy ((.80 * max-pxcor) + random axis-grouping-radius) ((.60 * min-pycor) + random axis-grouping-radius)
     set heading 270
     set health 200 ]
-  reset-ticks
+end
+
+to place-allies
+  create-allies num-allies
+  [ set color [0 0 255 125]
+    set size 1.5
+    setxy ((.5 * max-pxcor) + random allies-grouping-radius) ((.80 * min-pycor) + random allies-grouping-radius)
+    set heading 90
+    set health 200 ]
+
+end
+
+to place-armour-allies
+  create-armour-allies num-armour-allies
+  [ set color [0 0 255 125]
+    set size 2.0
+    setxy ((.5 * max-pxcor) + random allies-grouping-radius) ((.80 * min-pycor) + random allies-grouping-radius)
+    set heading 90
+    set health 200 ]
+end
+
+to place-armour-axis
+  create-armour-axis num-armour-axis
+  [ set color [255 0 0 125]
+    set size 2.0
+    setxy ((.80 * max-pxcor) + random axis-grouping-radius) ((.60 * min-pycor) + random axis-grouping-radius)
+    set heading 270
+    set health 200 ]
 end
 
 ; Drawing polygon data from a shapefile
@@ -82,20 +135,6 @@ to display-tunisia
 end
 
 to go
-;  ask shepherds
-;  [ ifelse carried-sheep = nobody
-;      [ search-for-sheep ]     ;; find a sheep and pick it up
-;    [ ifelse found-herd?
-;        [ find-empty-spot ]  ;; find an empty spot to drop the sheep
-;      [ find-new-herd ] ]  ;; find a herd to drop the sheep in
-;    wiggle
-;    fd 1
-;    if carried-sheep != nobody
-;    ;; bring my sheep to where I just moved to
-;    [ ask carried-sheep [ move-to myself ] ] ]
-;  ask sheep with [not hidden?]
-;  [ wiggle
-;    fd ally-speed ]
   let threshold 10
   let enemy_distance 20
   ;; Only for movement
@@ -124,7 +163,17 @@ to go
 
   ;; Kill off any troop that health has reached 0
   check-death
+
+  if mouse-down?
+  [ ask patch mouse-xcor mouse-ycor [ set pcolor red ]
+    ask patch mouse-xcor mouse-ycor [ file-write mouse-xcor file-write mouse-ycor ] ]
+
   tick
+end
+
+;; Finish outputting to a file
+to finish-adding-mtns
+  file-close
 end
 
 to check-death
@@ -147,41 +196,6 @@ to wiggle        ;; turtle procedure
   rt random 50 - random 50
 end
 
-;to update-sheep-counts
-;  ask patches
-;    [ set sheep-nearby (sum [count sheep-here] of neighbors) ]
-;  set sheepless-neighborhoods (count patches with [sheep-nearby = 0])
-;end
-
-;to calculate-herding-efficiency
-;  set herding-efficiency (sheepless-neighborhoods / (count patches with [not any? sheep-here])) * 100
-;end
-
-;to search-for-sheep ;; shepherds procedure
-;  set carried-sheep one-of sheep-here with [not hidden?]
-;  if (carried-sheep != nobody)
-;    [ ask carried-sheep
-;        [ hide-turtle ]  ;; make the sheep invisible to other shepherds
-;      set color blue     ;; turn shepherd blue while carrying sheep
-;      fd 1 ]
-;end
-;
-;to find-new-herd ;; shepherds procedure
-;  if any? sheep-here with [not hidden?]
-;    [ set found-herd? true ]
-;end
-;
-;to find-empty-spot ;; shepherds procedure
-;  if all? sheep-here [hidden?]
-;    [ ask carried-sheep
-;        [ show-turtle ]       ;; make the sheep visible again
-;      set color brown         ;; set my own color back to brown
-;      set carried-sheep nobody
-;      set found-herd? false
-;      rt random 360
-;      fd 20 ]
-;end
-
 
 ; Copyright 1998 Uri Wilensky.
 ; See Info tab for full copyright and license.
@@ -189,7 +203,7 @@ end
 GRAPHICS-WINDOW
 210
 10
-1013
+1533
 704
 -1
 -1
@@ -204,7 +218,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-60
+100
 -50
 0
 0
@@ -222,7 +236,7 @@ num-allies
 num-allies
 0
 100
-54
+5
 1
 1
 NIL
@@ -237,7 +251,7 @@ num-axis
 num-axis
 0
 100
-52
+5
 1
 1
 NIL
@@ -267,6 +281,64 @@ BUTTON
 79
 NIL
 setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+17
+309
+154
+342
+mtn-loc-add
+mtn-loc-add
+1
+1
+-1000
+
+SLIDER
+15
+165
+187
+198
+num-armour-allies
+num-armour-allies
+0
+100
+20
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+15
+128
+187
+161
+num-armour-axis
+num-armour-axis
+0
+100
+20
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+31
+383
+185
+416
+NIL
+finish-adding-mtns
 NIL
 1
 T
