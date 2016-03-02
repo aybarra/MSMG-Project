@@ -102,6 +102,7 @@ to place-mountains
       setxy (item 0 loc) (item 1 loc)
       set heading 0
       set size 1.5
+      set health 10
     ]
   ]
   file-close
@@ -118,6 +119,7 @@ to place-axis
     setxy (.50 * max-pxcor) min-pycor
     set name "KG Stenkoff"
     set label name
+    set health starting-health
   ]
 
   create-armor-axis 1
@@ -126,6 +128,7 @@ to place-axis
     set size 1.5
     setxy ((.50 * max-pxcor) + 2) min-pycor
     set label who
+    set health starting-health
   ]
 
   create-armor-axis 1
@@ -134,6 +137,7 @@ to place-axis
     set size 1.5
     setxy ((.50 * max-pxcor) + 4) min-pycor
     set label who
+    set health starting-health
   ]
 
   ;; KG Schutte (1 infantry, 1 armor)
@@ -143,6 +147,7 @@ to place-axis
     set size 1.5
     setxy ((.65 * max-pxcor)) min-pycor
     set label who
+    set health starting-health
   ]
 
   create-armor-axis 1
@@ -152,6 +157,7 @@ to place-axis
     set name "KG Schutte"
     setxy ((.68 * max-pxcor)) min-pycor
     set label name
+    set health starting-health
   ]
 
   ;; KG Reiman (1 infantry)
@@ -162,6 +168,7 @@ to place-axis
     set name "KG Reiman"
     setxy ((.78 * max-pxcor)) ((.62 * min-pycor))
     set label name
+    set health starting-health
   ]
 
   ;; KG Gerhardt (1 armor, 1 infantry)
@@ -173,6 +180,7 @@ to place-axis
     set label who
     set name "KG Gerhardt"
     set unit-target (list ("2-168 IN"))
+    set health starting-health
   ]
 
   create-axis 1
@@ -182,6 +190,8 @@ to place-axis
     setxy (.82 * max-pxcor) (.58 * min-pycor)
     set name "KG Gerhardt"
     set label name
+    set unit-target (list ("2-168 IN"))
+    set health starting-health
   ]
 
 end
@@ -202,6 +212,7 @@ to place-allies
     setxy (.71 * max-pxcor) (.83 * min-pycor)
     set name "3-168 IN"
     set label name
+    set health starting-health
   ]
 
   ;; 3/1 AR
@@ -212,6 +223,7 @@ to place-allies
     setxy (.5 * max-pxcor) (.78 * min-pycor)
     set name "3/1 AR"
     set label name
+    set health starting-health
   ]
 
   ;; 2-168 IN
@@ -222,6 +234,7 @@ to place-allies
     setxy (.56 * max-pxcor) (.45 * min-pycor)
     set name "2-168 IN"
     set label name
+    set health starting-health
   ]
 
   ;; Combat command C (1 infantry, 1 armor)
@@ -232,6 +245,7 @@ to place-allies
     setxy (.39 * max-pxcor) (.25 * min-pycor)
     set name "Combat Command C"
     ;;set label name
+    set health starting-health
   ]
 
   create-armor-allies 1
@@ -240,6 +254,7 @@ to place-allies
     set size 1.5
     setxy (.36 * max-pxcor) (.25 * min-pycor)
     set label who
+    set health starting-health
   ]
 
   ;; 1/6 AR (1 armor)
@@ -250,6 +265,7 @@ to place-allies
     setxy (.23 * max-pxcor) (.29 * min-pycor)
     set name "1/6 AR"
     set label name
+    set health starting-health
   ]
 end
 
@@ -311,13 +327,19 @@ to go
   ask axis [
     let units (turtles with [ name = "KG Gerhardt" ])
     ask units [
-      let target-name unit-target
-
+      let target-name (item 0 unit-target)
+      output-print target-name
       ;; Select the allies that we want to target
       let target-allies (turtles with [ name = target-name ])
-
-
-
+      let current (one-of target-allies)
+      ifelse distance current < enemy-radius [
+        ;;face 0
+        ;;fd 1
+      ]
+      [
+        face one-of target-allies
+        fd 1
+      ]
     ]
   ]
 
@@ -516,6 +538,36 @@ opacity
 250
 210
 10
+1
+NIL
+HORIZONTAL
+
+SLIDER
+4
+342
+176
+375
+starting-health
+starting-health
+0
+100
+50
+10
+1
+NIL
+HORIZONTAL
+
+SLIDER
+4
+385
+176
+418
+enemy-radius
+enemy-radius
+0
+10
+5
+1
 1
 NIL
 HORIZONTAL
