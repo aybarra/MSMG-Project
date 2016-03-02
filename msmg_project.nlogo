@@ -17,6 +17,10 @@ globals
   screen-size
   axis-grouping-radius
   allies-grouping-radius
+
+  bat-name
+  allies-engaged
+  engagement-count
 ]
 
 breed [ city-labels city-label ]
@@ -34,6 +38,8 @@ turtles-own
   health
   name
   unit-target
+  objective-locations
+  objective-index
 ]
 
 mountains-own
@@ -59,14 +65,17 @@ to setup
   set screen-size (max-pxcor - min-pxcor) * (max-pycor - min-pycor)
   ;; display-tunisia
 
-;  import-drawing "battle_area.png"
+
   import-drawing "map-terrain.png"
-  ;import-drawing "terrain.png"
-  ;import-pcolors-rgb "battle_area.png"
+  import-pcolors-rgb "map-terrain-routes.png"
 
   set axis-grouping-radius 10
   set allies-grouping-radius 10
   place-mountains
+
+  set engagement-count 0
+  set allies-engaged false
+
   ; file-open "mtn-locs.txt"
   place-axis
   ;; place-armour-axis
@@ -119,6 +128,8 @@ to place-axis
     setxy (.50 * max-pxcor) min-pycor
     set name "KG Stenkoff"
     set label name
+    set unit-target (list ("3/1 AR"))
+    set objective-locations (list (.25 * max-pxcor) (min-pycor) (.30 * max-pxcor) (.90 * min-pycor) (.30 * max-pxcor) (.80 * min-pycor) (.5 * max-pxcor) (.72 * min-pycor))
     set health starting-health
   ]
 
@@ -127,7 +138,10 @@ to place-axis
     set color (list 255 0 0 (opacity))
     set size 1.5
     setxy ((.50 * max-pxcor) + 2) min-pycor
-    set label who
+    ;set label who
+    set name "KG Stenkoff"
+    set unit-target (list ("3/1 AR"))
+    set objective-locations (list ((.25 * max-pxcor) + 2) (min-pycor) ((.30 * max-pxcor) + 2) (.90 * min-pycor) ((.30 * max-pxcor) + 2) (.80 * min-pycor) ((.5 * max-pxcor) + 2) (.72 * min-pycor))
     set health starting-health
   ]
 
@@ -136,7 +150,10 @@ to place-axis
     set color (list 255 0 0 (opacity))
     set size 1.5
     setxy ((.50 * max-pxcor) + 4) min-pycor
-    set label who
+    ;set label who
+    set name "KG Stenkoff"
+    set unit-target (list ("3/1 AR"))
+    set objective-locations (list ((.25 * max-pxcor) + 4) (min-pycor) ((.30 * max-pxcor) + 4) (.90 * min-pycor) ((.30 * max-pxcor) + 4) (.80 * min-pycor) ((.5 * max-pxcor) + 4) (.72 * min-pycor))
     set health starting-health
   ]
 
@@ -146,7 +163,10 @@ to place-axis
     set color (list 255 0 0 (opacity))
     set size 1.5
     setxy ((.65 * max-pxcor)) min-pycor
-    set label who
+    ;set label who
+    set name "KG Schutte"
+    set unit-target (list ("3-168 IN"))
+    set objective-locations (list (.70 * max-pxcor) (.88 * min-pycor))
     set health starting-health
   ]
 
@@ -157,6 +177,8 @@ to place-axis
     set name "KG Schutte"
     setxy ((.68 * max-pxcor)) min-pycor
     set label name
+    set unit-target (list ("3-168 IN"))
+    set objective-locations (list (.73 * max-pxcor) (.88 * min-pycor))
     set health starting-health
   ]
 
@@ -165,9 +187,11 @@ to place-axis
   [
     set color (list 255 0 0 (opacity))
     set size 1.5
-    set name "KG Reiman"
+    set name "KG Reimann"
     setxy ((.78 * max-pxcor)) ((.62 * min-pycor))
     set label name
+    set unit-target (list ("3/1 AR"))
+    set objective-locations (list (.70 * max-pxcor) (.58 * min-pycor) (.68 * max-pxcor) (.58 * min-pycor) (.65 * max-pxcor) (.58 * min-pycor))
     set health starting-health
   ]
 
@@ -177,9 +201,10 @@ to place-axis
     set color (list 255 0 0 (opacity))
     set size 1.5
     setxy (.79 * max-pxcor) (.57 * min-pycor)
-    set label who
+    ;set label who
     set name "KG Gerhardt"
     set unit-target (list ("2-168 IN"))
+    set objective-locations (list (.70 * max-pxcor) (.62 * min-pycor) (.56 * max-pxcor) (.40 * min-pycor) (.51 * max-pxcor) (.43 * min-pycor)  (.53 * max-pxcor) (.47 * min-pycor))
     set health starting-health
   ]
 
@@ -191,7 +216,9 @@ to place-axis
     set name "KG Gerhardt"
     set label name
     set unit-target (list ("2-168 IN"))
+    set objective-locations (list (.70 * max-pxcor) (.62 * min-pycor) (.56 * max-pxcor) (.40 * min-pycor) (.53 * max-pxcor) (.45 * min-pycor)  (.50 * max-pxcor) (.52 * min-pycor))
     set health starting-health
+    set objective-index 0
   ]
 
 end
@@ -223,6 +250,7 @@ to place-allies
     setxy (.5 * max-pxcor) (.78 * min-pycor)
     set name "3/1 AR"
     set label name
+    set objective-locations (list (.55 * max-pxcor) (.62 * min-pycor))
     set health starting-health
   ]
 
@@ -243,8 +271,8 @@ to place-allies
     set color (list 0 0 255 (opacity))
     set size 1.5
     setxy (.39 * max-pxcor) (.25 * min-pycor)
-    set name "Combat Command C"
-    ;;set label name
+    set name "CCC"
+    set label name
     set health starting-health
   ]
 
@@ -253,7 +281,7 @@ to place-allies
     set color (list 0 0 255 (opacity))
     set size 1.5
     setxy (.36 * max-pxcor) (.25 * min-pycor)
-    set label who
+    ;set label who
     set health starting-health
   ]
 
@@ -282,66 +310,22 @@ to go
   let threshold 10
   let enemy_distance 20
 
-;  ask allies [
-;    ifelse not any? turtles with [ breed != [ breed ] of axis and breed != [ breed ] of armour-axis and abs (xcor - [ xcor ] of myself) < threshold ] [
-;      output-print "Movement"
-;      move
-;    ]
-;    ;; Attack
-;    [
-;      output-print "attack"
-;      attack
-;    ]
-;  ]
-;
-;  ask axis [
-;  ]
-
-
-;  ;; Only for movement
-;  ask turtles [
-;    ;; So long as there's not an opposing force blocking my path move left or right respectively
-;    ifelse not any? turtles with [ breed != [ breed ] of myself and abs (xcor - [ xcor ] of myself) < threshold ] [
-;      move
-;    ]
-;    [
-;      if breed = allies [
-;      ;; let x min-one-of other axis in-radius threshold [distance myself]
-;        ask axis in-radius enemy_distance [
-;          set health health - 1
-;        ]
-;      ;; set health health - 1
-;      ]
-;      if breed = axis [
-;        ;; let x min-one-of other allies in-radius threshold [distance myself]
-;        ;; set health health - 1
-;        ask allies in-radius enemy_distance [
-;          set health health - 1
-;        ]
-;      ]
-;    ]
-;  ]
-
   ;; KG Gerhardt movement
-  ;; Start with axis to save cycles
-  ask axis [
-    let units (turtles with [ name = "KG Gerhardt" ])
-    ask units [
-      let target-name (item 0 unit-target)
-      output-print target-name
-      ;; Select the allies that we want to target
-      let target-allies (turtles with [ name = target-name ])
-      let current (one-of target-allies)
-      ifelse distance current < enemy-radius [
-        ;;face 0
-        ;;fd 1
-      ]
-      [
-        face one-of target-allies
-        fd 1
-      ]
-    ]
-  ]
+  set bat-name "KG Gerhardt"
+  perform-axis-movement bat-name
+
+  ;; KG Stenkoff
+  set bat-name "KG Stenkoff"
+  perform-axis-movement bat-name
+
+  set bat-name "KG Schutte"
+  perform-axis-movement bat-name
+
+  set bat-name "KG Reimann"
+  perform-axis-movement bat-name
+
+  set bat-name "3/1 AR"
+  perform-allies-movement bat-name
 
   ;; Kill off any troop that health has reached 0
   check-death
@@ -351,6 +335,97 @@ to go
     ask patch mouse-xcor mouse-ycor [ file-print mouse-xcor file-print mouse-ycor ] ]
 
   tick
+end
+
+
+to perform-allies-movement [ name-of-batallion ]
+  if allies-engaged [
+    ask allies [
+      let units (turtles with [ name = name-of-batallion ])
+      ask units [
+
+        if length objective-locations > 0 [
+          ;; Fetch the first coordinate to move to
+          let objx round (item 0 objective-locations)
+          set objective-index objective-index + 1
+          let objy round (item 1 objective-locations)
+
+          ifelse (round xcor) = objx and (round ycor) = objy
+          [
+            ;; pop the next off the list
+            set objective-locations remove-item 0 objective-locations
+            set objective-locations remove-item 0 objective-locations
+          ]
+          [
+            ;; Otherwise keep moving towards it
+            set heading towardsxy objx objy ;face one-of ally-targets
+            fd 1
+          ]
+        ]
+      ]
+    ]
+  ]
+end
+
+to perform-axis-movement [ name-of-batallion ]
+  ;output-print name-of-batallion
+  ;; Start with axis to save cycles
+  ask axis [
+    let units (turtles with [ name = name-of-batallion ])
+    ask units [
+      let target-name (item 0 unit-target)
+      ; output-print target-name
+      ;; Select the allies that we want to target
+      let ally-targets (turtles with [ name = target-name ])
+
+      ;; Select one of them (ideally the first in the list)
+      let current (one-of ally-targets)
+
+      if length objective-locations > 0 [
+        ;; Fetch the first coordinate to move to
+        let objx round (item 0 objective-locations)
+        set objective-index objective-index + 1
+        let objy round (item 1 objective-locations)
+
+        ; output-print objx output-print objy output-print round xcor output-print round ycor
+
+        ; Reset, only if we're there will we increment the index += 2
+        ;set objective-index objective-index - 1
+
+        ;; distance current < enemy-radius and
+        ifelse (round xcor) = objx and (round ycor) = objy and distance current < enemy-radius [
+          ;;face 0
+          ;;fd 1
+          create-link-to current
+
+
+          set engagement-count engagement-count + 1
+
+          ; Oh shit
+          if engagement-count = 2[
+            set allies-engaged true
+          ]
+
+          ;set objective-index objective-index + 2
+          set objective-locations remove-item 0 objective-locations
+          set objective-locations remove-item 0 objective-locations
+        ]
+        [
+          ifelse (round xcor) = objx and (round ycor) = objy
+          [
+            ;; pop the next off the list
+            set objective-locations remove-item 0 objective-locations
+            set objective-locations remove-item 0 objective-locations
+          ]
+          [
+            ;; Otherwise keep moving towards it
+            set heading towardsxy objx objy ;face one-of ally-targets
+            fd 1
+          ]
+        ]
+      ]
+    ]
+  ]
 end
 
 ;; Finish outputting to a file
@@ -426,10 +501,10 @@ ticks
 30.0
 
 BUTTON
-50
 10
-113
-43
+436
+73
+469
 NIL
 go
 T
@@ -443,10 +518,10 @@ NIL
 1
 
 BUTTON
-118
-10
-184
-43
+78
+436
+144
+469
 NIL
 setup
 NIL
@@ -566,7 +641,7 @@ enemy-radius
 enemy-radius
 0
 10
-5
+3
 1
 1
 NIL
