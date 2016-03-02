@@ -1,12 +1,10 @@
 extensions [ gis ]
 
-;breed [sheep a-sheep]
-;breed [shepherds shepherd]
 breed [allies ally]
 breed [axis an-axis]
 breed [mountains a-mountain]
-breed [armour-allies ar-ally]
-breed [armour-axis ar-axis]
+breed [armor-allies ar-ally]
+breed [armor-axis ar-axis]
 
 globals
 [
@@ -28,17 +26,20 @@ breed [ country-vertices country-vertex ]
 patches-own
 [
   sheep-nearby                  ;; how many sheep in neighboring patches?
+  terrain-val
 ]
 
 turtles-own
 [
   health
+  name
+  unit-target
 ]
-;shepherds-own
-;[
-;  carried-sheep         ;; the sheep I'm carrying (or nobody if I'm not carrying in)
-;  found-herd?           ;; becomes true when I find a herd to drop it in
-;]
+
+mountains-own
+[
+  elevation
+]
 
 to setup
   clear-all
@@ -58,22 +59,26 @@ to setup
   set screen-size (max-pxcor - min-pxcor) * (max-pycor - min-pycor)
   ;; display-tunisia
 
-  file-open "mtn-locs.txt"
-  import-drawing "battle_area.png"
-  ;; import-pcolors "battle_area.png"
+;  import-drawing "battle_area.png"
+  import-drawing "map-terrain.png"
+  ;import-drawing "terrain.png"
+  ;import-pcolors-rgb "battle_area.png"
 
-  set axis-grouping-radius 5
-  set allies-grouping-radius 5
+  set axis-grouping-radius 10
+  set allies-grouping-radius 10
+  place-mountains
+  ; file-open "mtn-locs.txt"
   place-axis
-  place-armour-axis
+  ;; place-armour-axis
 
   place-allies
-  place-armour-allies
+  ;; place-armour-allies
 
   set-default-shape allies "square"
   set-default-shape axis "square"
-  set-default-shape armour-axis "triangle"
-  set-default-shape armour-allies "triangle"
+  set-default-shape armor-axis "triangle"
+  set-default-shape armor-allies "triangle"
+  set-default-shape mountains "triangle 2"
 
   ;;ask patches
   ;;  [ set pcolor 37 + (random-float 0.8) - 0.4]   ;; varying the brown to make sandy effect
@@ -82,51 +87,174 @@ to setup
 end
 
 to place-mountains
-  create-mountains 100
-  [ set color [139 69 19 125]
+  file-open "mtn-locs-cleaned.txt"
 
+  while [not file-at-end?][
+    ;read one line
+    let loc list file-read file-read
+    show loc
+
+    ; ask patch (item 0 loc) (item 1 loc) [set terrain-val 100 set pcolor red]
+    ; show patch (item 0 loc) (item 1 loc)
+    create-mountains 1
+    [
+      set color [0 0 0]
+      setxy (item 0 loc) (item 1 loc)
+      set heading 0
+      set size 1.5
+    ]
   ]
+  file-close
+
 end
+
 to place-axis
-  create-axis num-axis
-  [ set color [255 0 0 125]
+
+  ;; KG Stenkoff (1 infantry, 2 armor)
+  create-axis 1
+  [
+    set color (list 255 0 0 (opacity))
     set size 1.5
-    setxy ((.80 * max-pxcor) + random axis-grouping-radius) ((.60 * min-pycor) + random axis-grouping-radius)
-    set heading 270
-    set health 200 ]
+    setxy (.50 * max-pxcor) min-pycor
+    set name "KG Stenkoff"
+    set label name
+  ]
+
+  create-armor-axis 1
+  [
+    set color (list 255 0 0 (opacity))
+    set size 1.5
+    setxy ((.50 * max-pxcor) + 2) min-pycor
+    set label who
+  ]
+
+  create-armor-axis 1
+  [
+    set color (list 255 0 0 (opacity))
+    set size 1.5
+    setxy ((.50 * max-pxcor) + 4) min-pycor
+    set label who
+  ]
+
+  ;; KG Schutte (1 infantry, 1 armor)
+  create-axis 1
+  [
+    set color (list 255 0 0 (opacity))
+    set size 1.5
+    setxy ((.65 * max-pxcor)) min-pycor
+    set label who
+  ]
+
+  create-armor-axis 1
+  [
+    set color (list 255 0 0 (opacity))
+    set size 1.5
+    set name "KG Schutte"
+    setxy ((.68 * max-pxcor)) min-pycor
+    set label name
+  ]
+
+  ;; KG Reiman (1 infantry)
+  create-axis 1
+  [
+    set color (list 255 0 0 (opacity))
+    set size 1.5
+    set name "KG Reiman"
+    setxy ((.78 * max-pxcor)) ((.62 * min-pycor))
+    set label name
+  ]
+
+  ;; KG Gerhardt (1 armor, 1 infantry)
+  create-armor-axis 1
+  [
+    set color (list 255 0 0 (opacity))
+    set size 1.5
+    setxy (.79 * max-pxcor) (.57 * min-pycor)
+    set label who
+    set name "KG Gerhardt"
+    set unit-target (list ("2-168 IN"))
+  ]
+
+  create-axis 1
+  [
+    set color (list 255 0 0 (opacity))
+    set size 1.5
+    setxy (.82 * max-pxcor) (.58 * min-pycor)
+    set name "KG Gerhardt"
+    set label name
+  ]
+
 end
 
 to place-allies
-  create-allies num-allies
-  [ set color [0 0 255 125]
+;  create-allies num-allies
+;  [ set color [0 0 255 125]
+;    set size 1.5
+;    setxy ((.5 * max-pxcor) + random allies-grouping-radius) ((.80 * min-pycor) + random allies-grouping-radius)
+;    set heading 90
+;    set health 200 ]
+
+  ;; 3-168 IN
+  create-allies 1
+  [
+    set color (list 0 0 255 (opacity))
     set size 1.5
-    setxy ((.5 * max-pxcor) + random allies-grouping-radius) ((.80 * min-pycor) + random allies-grouping-radius)
-    set heading 90
-    set health 200 ]
+    setxy (.71 * max-pxcor) (.83 * min-pycor)
+    set name "3-168 IN"
+    set label name
+  ]
 
-end
+  ;; 3/1 AR
+  create-armor-allies 1
+  [
+    set color (list 0 0 255 (opacity))
+    set size 1.5
+    setxy (.5 * max-pxcor) (.78 * min-pycor)
+    set name "3/1 AR"
+    set label name
+  ]
 
-to place-armour-allies
-  create-armour-allies num-armour-allies
-  [ set color [0 0 255 125]
-    set size 2.0
-    setxy ((.5 * max-pxcor) + random allies-grouping-radius) ((.80 * min-pycor) + random allies-grouping-radius)
-    set heading 90
-    set health 200 ]
-end
+  ;; 2-168 IN
+  create-allies 1
+  [
+    set color (list 0 0 255 (opacity))
+    set size 1.5
+    setxy (.56 * max-pxcor) (.45 * min-pycor)
+    set name "2-168 IN"
+    set label name
+  ]
 
-to place-armour-axis
-  create-armour-axis num-armour-axis
-  [ set color [255 0 0 125]
-    set size 2.0
-    setxy ((.80 * max-pxcor) + random axis-grouping-radius) ((.60 * min-pycor) + random axis-grouping-radius)
-    set heading 270
-    set health 200 ]
+  ;; Combat command C (1 infantry, 1 armor)
+  create-allies 1
+  [
+    set color (list 0 0 255 (opacity))
+    set size 1.5
+    setxy (.39 * max-pxcor) (.25 * min-pycor)
+    set name "Combat Command C"
+    ;;set label name
+  ]
+
+  create-armor-allies 1
+  [
+    set color (list 0 0 255 (opacity))
+    set size 1.5
+    setxy (.36 * max-pxcor) (.25 * min-pycor)
+    set label who
+  ]
+
+  ;; 1/6 AR (1 armor)
+  create-armor-allies 1
+  [
+    set color (list 0 0 255 (opacity))
+    set size 1.5
+    setxy (.23 * max-pxcor) (.29 * min-pycor)
+    set name "1/6 AR"
+    set label name
+  ]
 end
 
 ; Drawing polygon data from a shapefile
 to display-tunisia
-  ;; ask country-labels [ die ]
   gis:set-drawing-color white
   ;; gis:draw tunisia0-dataset 1
   gis:draw tunisia1-dataset 1
@@ -137,27 +265,59 @@ end
 to go
   let threshold 10
   let enemy_distance 20
-  ;; Only for movement
-  ask turtles [
-    ;; So long as there's not an opposing force blocking my path move left or right respectively
-    ifelse not any? turtles with [ breed != [ breed ] of myself and abs (xcor - [ xcor ] of myself) < threshold ] [
-      move
-    ]
-    [
-      if breed = allies [
-      ;; let x min-one-of other axis in-radius threshold [distance myself]
-        ask axis in-radius enemy_distance [
-          set health health - 1
-        ]
-      ;; set health health - 1
-      ]
-      if breed = axis [
-        ;; let x min-one-of other allies in-radius threshold [distance myself]
-        ;; set health health - 1
-        ask allies in-radius enemy_distance [
-          set health health - 1
-        ]
-      ]
+
+;  ask allies [
+;    ifelse not any? turtles with [ breed != [ breed ] of axis and breed != [ breed ] of armour-axis and abs (xcor - [ xcor ] of myself) < threshold ] [
+;      output-print "Movement"
+;      move
+;    ]
+;    ;; Attack
+;    [
+;      output-print "attack"
+;      attack
+;    ]
+;  ]
+;
+;  ask axis [
+;  ]
+
+
+;  ;; Only for movement
+;  ask turtles [
+;    ;; So long as there's not an opposing force blocking my path move left or right respectively
+;    ifelse not any? turtles with [ breed != [ breed ] of myself and abs (xcor - [ xcor ] of myself) < threshold ] [
+;      move
+;    ]
+;    [
+;      if breed = allies [
+;      ;; let x min-one-of other axis in-radius threshold [distance myself]
+;        ask axis in-radius enemy_distance [
+;          set health health - 1
+;        ]
+;      ;; set health health - 1
+;      ]
+;      if breed = axis [
+;        ;; let x min-one-of other allies in-radius threshold [distance myself]
+;        ;; set health health - 1
+;        ask allies in-radius enemy_distance [
+;          set health health - 1
+;        ]
+;      ]
+;    ]
+;  ]
+
+  ;; KG Gerhardt movement
+  ;; Start with axis to save cycles
+  ask axis [
+    let units (turtles with [ name = "KG Gerhardt" ])
+    ask units [
+      let target-name unit-target
+
+      ;; Select the allies that we want to target
+      let target-allies (turtles with [ name = target-name ])
+
+
+
     ]
   ]
 
@@ -166,7 +326,7 @@ to go
 
   if mouse-down?
   [ ask patch mouse-xcor mouse-ycor [ set pcolor red ]
-    ask patch mouse-xcor mouse-ycor [ file-write mouse-xcor file-write mouse-ycor ] ]
+    ask patch mouse-xcor mouse-ycor [ file-print mouse-xcor file-print mouse-ycor ] ]
 
   tick
 end
@@ -192,18 +352,34 @@ to move
   ]
 end
 
+to attack
+  let enemy_distance 5
+  if breed = allies [
+;    let x min-one-of other boeufs in-radius distance-min [distance myself]
+    let target min-one-of other axis in-radius enemy_distance [ distance myself ]
+    if target != nobody [
+      ;; Update the selected target's (singular) health
+      ask target [ set health health - 1 ]
+      ]
+  ]
+  if breed = axis [
+    ask allies in-radius enemy_distance [ set health health - 1 ]
+  ]
+end
+
 to wiggle        ;; turtle procedure
   rt random 50 - random 50
 end
 
 
 ; Copyright 1998 Uri Wilensky.
+;; Is there an assumption that allies are the one's attacking? so we'd have a switch to set allies to attack first
 ; See Info tab for full copyright and license.
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-1533
+1338
 704
 -1
 -1
@@ -218,7 +394,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-100
+85
 -50
 0
 0
@@ -227,41 +403,11 @@ GRAPHICS-WINDOW
 ticks
 30.0
 
-SLIDER
-19
-217
-191
-250
-num-allies
-num-allies
-0
-100
-5
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-18
-261
-190
-294
-num-axis
-num-axis
-0
-100
-5
-1
-1
-NIL
-HORIZONTAL
-
 BUTTON
-26
-46
-89
-79
+50
+10
+113
+43
 NIL
 go
 T
@@ -275,10 +421,10 @@ NIL
 1
 
 BUTTON
-95
-46
-161
-79
+118
+10
+184
+43
 NIL
 setup
 NIL
@@ -292,51 +438,21 @@ NIL
 1
 
 SWITCH
-17
-309
-154
-342
+9
+52
+146
+85
 mtn-loc-add
 mtn-loc-add
-1
+0
 1
 -1000
 
-SLIDER
-15
-165
-187
-198
-num-armour-allies
-num-armour-allies
-0
-100
-20
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-15
-128
-187
-161
-num-armour-axis
-num-armour-axis
-0
-100
-20
-1
-1
-NIL
-HORIZONTAL
-
 BUTTON
-31
-383
-185
-416
+8
+87
+162
+120
 NIL
 finish-adding-mtns
 NIL
@@ -348,6 +464,61 @@ NIL
 NIL
 NIL
 1
+
+CHOOSER
+5
+128
+143
+173
+attacking-force
+attacking-force
+"allies" "axis"
+0
+
+SLIDER
+-2
+195
+183
+228
+ally-inf-effectiveness
+ally-inf-effectiveness
+0
+1
+1
+.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+0
+234
+185
+267
+axis-inf-effectiveness
+axis-inf-effectiveness
+0
+1
+1
+.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+4
+291
+176
+324
+opacity
+opacity
+0
+250
+210
+10
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
