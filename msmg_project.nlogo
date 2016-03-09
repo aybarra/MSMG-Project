@@ -130,7 +130,7 @@ to place-axis
     set name "KG Stenkoff"
     set label name
     set unit-target (list ("3/1 AR"))
-    set objective-locations (list (.25 * max-pxcor) (min-pycor) (.30 * max-pxcor) (.90 * min-pycor) (.30 * max-pxcor) (.80 * min-pycor) (.5 * max-pxcor) (.72 * min-pycor))
+    set objective-locations (list (.25 * max-pxcor) (min-pycor) (.30 * max-pxcor) (.90 * min-pycor) (.30 * max-pxcor) (.80 * min-pycor) (.5 * max-pxcor) (.70 * min-pycor))
     set health starting-health
   ]
 
@@ -142,7 +142,7 @@ to place-axis
     ;set label who
     set name "KG Stenkoff"
     set unit-target (list ("3/1 AR"))
-    set objective-locations (list ((.25 * max-pxcor) + 2) (min-pycor) ((.30 * max-pxcor) + 2) (.90 * min-pycor) ((.30 * max-pxcor) + 2) (.80 * min-pycor) ((.5 * max-pxcor) + 2) (.72 * min-pycor))
+    set objective-locations (list ((.25 * max-pxcor) + 2) (min-pycor) ((.30 * max-pxcor) + 2) (.90 * min-pycor) ((.30 * max-pxcor) + 2) (.80 * min-pycor) ((.5 * max-pxcor) + 2) (.70 * min-pycor))
     set health starting-health
   ]
 
@@ -154,7 +154,7 @@ to place-axis
     ;set label who
     set name "KG Stenkoff"
     set unit-target (list ("3/1 AR"))
-    set objective-locations (list ((.25 * max-pxcor) + 4) (min-pycor) ((.30 * max-pxcor) + 4) (.90 * min-pycor) ((.30 * max-pxcor) + 4) (.80 * min-pycor) ((.5 * max-pxcor) + 4) (.72 * min-pycor))
+    set objective-locations (list ((.25 * max-pxcor) + 4) (min-pycor) ((.30 * max-pxcor) + 4) (.90 * min-pycor) ((.30 * max-pxcor) + 4) (.80 * min-pycor) ((.5 * max-pxcor) + 4) (.70 * min-pycor))
     set health starting-health
   ]
 
@@ -382,14 +382,22 @@ to perform-axis-movement [ name-of-batallion ]
       ;; Select one of them (ideally the first in the list)
       let current (one-of ally-targets)
 
-      if length objective-locations > 0 [
-        ;; Fetch the first coordinate to move to
-        let objx round (item 0 objective-locations)
-        ; set objective-index objective-index + 1
-        let objy round (item 1 objective-locations)
-
+      let objx -1
+      let objy -1
+      ;if length objective-locations > 0 [
+        ifelse length objective-locations > 0 [
+          ;; Fetch the first coordinate to move to
+          set objx round (item 0 objective-locations)
+          ; set objective-index objective-index + 1
+          set objy round (item 1 objective-locations)
+        ][
+          if current != nobody[
+            set objx round [xcor] of current
+            set objy round [ycor] of current
+          ]
+        ]
         ;; checking that the position matches objective location
-        ifelse (round xcor) = objx and (round ycor) = objy and distance current < enemy-radius [
+        ifelse current != nobody and (round xcor) = objx and (round ycor) = objy and distance current < enemy-radius and objx != -1 and objy != -1 [
 
           ;; ATTACK
           create-link-to current
@@ -427,7 +435,13 @@ to perform-axis-movement [ name-of-batallion ]
             ]
             ;; Armor vs Armor
             if breed-check = armor-allies [
-              ;; Line of sight prob of hit
+              ;; Does it for axis
+              axis-ar-ar axis-health ally-health
+              set health remaining-health
+
+              ;; Does it for allies
+              ally-ar-ar ally-health axis-health
+              ask current [ set health remaining-health ]
             ]
           ]
 
@@ -439,8 +453,10 @@ to perform-axis-movement [ name-of-batallion ]
           ]
 
           ; Remove an item from the objective locations
-          set objective-locations remove-item 0 objective-locations
-          set objective-locations remove-item 0 objective-locations
+          if length objective-locations > 0 [
+            set objective-locations remove-item 0 objective-locations
+            set objective-locations remove-item 0 objective-locations
+          ]
         ]
         [
           ifelse (round xcor) = objx and (round ycor) = objy
@@ -451,11 +467,13 @@ to perform-axis-movement [ name-of-batallion ]
           ]
           [
             ;; Otherwise keep moving towards it
-            set heading towardsxy objx objy ;face one-of ally-targets
-            fd 1
+            if current != nobody and distance current > enemy-radius [
+              set heading towardsxy objx objy ;face one-of ally-targets
+              fd 1
+            ]
           ]
         ]
-      ]
+      ;]
     ]
   ]
 end
@@ -477,7 +495,7 @@ to lanchester-ally-inf-inf [ ally-inf-health axis-inf-health ]
 end
 
 to lanchester-ally-inf-ar [ ally-inf-health axis-ar-health ]
-  let remaining-ally ((ally-inf-health * axis-ar-health) * exp (-1 * axis-ar-eff))
+  let remaining-ally ((ally-inf-health) * exp (-1 * axis-ar-eff))
   set remaining-health remaining-ally
 end
 
@@ -485,9 +503,12 @@ end
 ;
 ;end
 
-;to ally-ar-ar [ ally-unit-health axis-unit-health ]
-;  .5 * ((ally-unit-health - sqrt(/
-;end
+to ally-ar-ar [ ally-unit-health axis-unit-health ]
+  let prob random 100
+  if prob < 50 [
+    set remaining-health (.5  * ally-unit-health)
+  ]
+end
 
 to lanchester-axis-inf-inf [ axis-inf-health ally-inf-health ]
   let remaining-axis (.5 * ((axis-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * ally-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff))))
@@ -495,7 +516,7 @@ to lanchester-axis-inf-inf [ axis-inf-health ally-inf-health ]
 end
 
 to lanchester-axis-inf-ar [ axis-inf-health ally-ar-health ]
-  let remaining-axis ((ally-ar-health * axis-inf-health) * exp sqrt (-1 * ally-ar-eff))
+  let remaining-axis ((ally-ar-health * axis-inf-health) * exp (-1 * ally-ar-eff))
   set remaining-health remaining-axis
 end
 
@@ -503,9 +524,12 @@ end
 ;
 ;end
 
-;to axis-ar-ar [ axis-unit-health ally-unit-health ]
-;
-;end
+to axis-ar-ar [ axis-unit-health ally-unit-health ]
+  let prob random 100
+  if prob < 50 [
+    set remaining-health (.5  * axis-unit-health)
+  ]
+end
 
 to wiggle        ;; turtle procedure
   rt random 50 - random 50
