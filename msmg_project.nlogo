@@ -8,8 +8,6 @@ breed [armor-axis ar-axis]
 
 globals
 [
-  sheepless-neighborhoods       ;; how many patches have no sheep in any neighboring patches?
-  herding-efficiency            ;; measures how well-herded the sheep are
   mouse-was-down?
   tunisia0-dataset
   tunisia1-dataset
@@ -21,6 +19,8 @@ globals
   bat-name
   allies-engaged
   engagement-count
+  dt
+  remaining-health
 ]
 
 breed [ city-labels city-label ]
@@ -39,7 +39,6 @@ turtles-own
   name
   unit-target
   objective-locations
-  objective-index
 ]
 
 mountains-own
@@ -88,6 +87,8 @@ to setup
   set-default-shape armor-axis "triangle"
   set-default-shape armor-allies "triangle"
   set-default-shape mountains "triangle 2"
+
+  set dt 1
 
   ;;ask patches
   ;;  [ set pcolor 37 + (random-float 0.8) - 0.4]   ;; varying the brown to make sandy effect
@@ -218,7 +219,6 @@ to place-axis
     set unit-target (list ("2-168 IN"))
     set objective-locations (list (.70 * max-pxcor) (.62 * min-pycor) (.56 * max-pxcor) (.40 * min-pycor) (.53 * max-pxcor) (.45 * min-pycor)  (.50 * max-pxcor) (.52 * min-pycor))
     set health starting-health
-    set objective-index 0
   ]
 
 end
@@ -347,7 +347,7 @@ to perform-allies-movement [ name-of-batallion ]
         if length objective-locations > 0 [
           ;; Fetch the first coordinate to move to
           let objx round (item 0 objective-locations)
-          set objective-index objective-index + 1
+          ; set objective-index objective-index + 1
           let objy round (item 1 objective-locations)
 
           ifelse (round xcor) = objx and (round ycor) = objy
@@ -373,8 +373,9 @@ to perform-axis-movement [ name-of-batallion ]
   ask axis [
     let units (turtles with [ name = name-of-batallion ])
     ask units [
+      ;; Fetch target name
       let target-name (item 0 unit-target)
-      ; output-print target-name
+
       ;; Select the allies that we want to target
       let ally-targets (turtles with [ name = target-name ])
 
@@ -384,29 +385,60 @@ to perform-axis-movement [ name-of-batallion ]
       if length objective-locations > 0 [
         ;; Fetch the first coordinate to move to
         let objx round (item 0 objective-locations)
-        set objective-index objective-index + 1
+        ; set objective-index objective-index + 1
         let objy round (item 1 objective-locations)
 
-        ; output-print objx output-print objy output-print round xcor output-print round ycor
-
-        ; Reset, only if we're there will we increment the index += 2
-        ;set objective-index objective-index - 1
-
-        ;; distance current < enemy-radius and
+        ;; checking that the position matches objective location
         ifelse (round xcor) = objx and (round ycor) = objy and distance current < enemy-radius [
-          ;;face 0
-          ;;fd 1
+
+          ;; ATTACK
           create-link-to current
 
+          let breed-check [breed] of current
+          let ally-health ([health] of current)
+          let axis-health (health)
+
+          ;; Axis-infantry
+          if breed = axis [
+            if breed-check = allies [
+              print "axis inf attacking ally inf"
+              ;; Call lanchester method for axis inf
+              lanchester-axis-inf-inf axis-health ally-health
+              set health remaining-health
+
+              ;; Call lanchester method for ally inf
+              lanchester-ally-inf-inf ally-health axis-health
+              print remaining-health
+              ask current [ set health remaining-health ]
+            ]
+            if breed-check = armor-allies [
+              ;; Do nothing...yet since inf can't hurt tanks
+            ]
+          ]
+          ;; Axis-armor
+          if breed = armor-axis [
+
+            ;; axis armor attacking allies inf --> Linear
+            if breed-check = allies [
+              print "axis ar attacking ally inf"
+              lanchester-ally-inf-ar ally-health axis-health
+              print remaining-health
+              ask current [ set health remaining-health]
+            ]
+            ;; Armor vs Armor
+            if breed-check = armor-allies [
+              ;; Line of sight prob of hit
+            ]
+          ]
 
           set engagement-count engagement-count + 1
 
-          ; Oh shit
-          if engagement-count = 2[
+          ; Oh shit --> Triggers the allies to move
+          if engagement-count = 2 [
             set allies-engaged true
           ]
 
-          ;set objective-index objective-index + 2
+          ; Remove an item from the objective locations
           set objective-locations remove-item 0 objective-locations
           set objective-locations remove-item 0 objective-locations
         ]
@@ -439,30 +471,41 @@ to check-death
   ]
 end
 
-;; Something simple....I'll have them move to the left or right
-to move
-  if breed = allies [
-    forward 1
-  ]
-  if breed = axis [
-    forward 1
-  ]
+to lanchester-ally-inf-inf [ ally-inf-health axis-inf-health ]
+  let remaining-ally (.5 * ((ally-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * axis-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff))))
+  set remaining-health remaining-ally
 end
 
-to attack
-  let enemy_distance 5
-  if breed = allies [
-;    let x min-one-of other boeufs in-radius distance-min [distance myself]
-    let target min-one-of other axis in-radius enemy_distance [ distance myself ]
-    if target != nobody [
-      ;; Update the selected target's (singular) health
-      ask target [ set health health - 1 ]
-      ]
-  ]
-  if breed = axis [
-    ask allies in-radius enemy_distance [ set health health - 1 ]
-  ]
+to lanchester-ally-inf-ar [ ally-inf-health axis-ar-health ]
+  let remaining-ally ((ally-inf-health * axis-ar-health) * exp (-1 * axis-ar-eff))
+  set remaining-health remaining-ally
 end
+
+;to lanchester-ally-ar-inf [ ally-ar-health axis-inf-health ]
+;
+;end
+
+;to ally-ar-ar [ ally-unit-health axis-unit-health ]
+;  .5 * ((ally-unit-health - sqrt(/
+;end
+
+to lanchester-axis-inf-inf [ axis-inf-health ally-inf-health ]
+  let remaining-axis (.5 * ((axis-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * ally-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff))))
+  set remaining-health remaining-axis
+end
+
+to lanchester-axis-inf-ar [ axis-inf-health ally-ar-health ]
+  let remaining-axis ((ally-ar-health * axis-inf-health) * exp sqrt (-1 * ally-ar-eff))
+  set remaining-health remaining-axis
+end
+
+;to lanchester-axis-ar-inf [ axis-unit-health ally-unit-health ]
+;
+;end
+
+;to axis-ar-ar [ axis-unit-health ally-unit-health ]
+;
+;end
 
 to wiggle        ;; turtle procedure
   rt random 50 - random 50
@@ -501,10 +544,10 @@ ticks
 30.0
 
 BUTTON
-10
-436
-73
-469
+26
+675
+89
+708
 NIL
 go
 T
@@ -518,10 +561,10 @@ NIL
 1
 
 BUTTON
-78
-436
-144
-469
+94
+675
+160
+708
 NIL
 setup
 NIL
@@ -534,22 +577,11 @@ NIL
 NIL
 1
 
-SWITCH
-9
-52
-146
-85
-mtn-loc-add
-mtn-loc-add
-0
-1
--1000
-
 BUTTON
-8
-87
-162
-120
+9
+33
+163
+66
 NIL
 finish-adding-mtns
 NIL
@@ -562,51 +594,11 @@ NIL
 NIL
 1
 
-CHOOSER
-5
-128
-143
-173
-attacking-force
-attacking-force
-"allies" "axis"
-0
-
 SLIDER
--2
-195
+11
+73
 183
-228
-ally-inf-effectiveness
-ally-inf-effectiveness
-0
-1
-1
-.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-0
-234
-185
-267
-axis-inf-effectiveness
-axis-inf-effectiveness
-0
-1
-1
-.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-4
-291
-176
-324
+106
 opacity
 opacity
 0
@@ -618,25 +610,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-4
-342
-176
-375
+11
+124
+183
+157
 starting-health
 starting-health
 0
 100
-50
+100
 10
 1
 NIL
 HORIZONTAL
 
 SLIDER
-4
-385
-176
-418
+11
+167
+183
+200
 enemy-radius
 enemy-radius
 0
@@ -646,6 +638,87 @@ enemy-radius
 1
 NIL
 HORIZONTAL
+
+SLIDER
+14
+227
+186
+260
+axis-ar-eff
+axis-ar-eff
+0
+1
+0.2
+.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+16
+270
+188
+303
+axis-inf-eff
+axis-inf-eff
+0
+1
+0.2
+.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+12
+311
+184
+344
+ally-ar-eff
+ally-ar-eff
+0
+1
+0.2
+.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+12
+352
+184
+385
+ally-inf-eff
+ally-inf-eff
+0
+1
+0.2
+.1
+1
+NIL
+HORIZONTAL
+
+PLOT
+3
+392
+371
+618
+Health of different units
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -13345367 true "" "plot sum [health] of allies"
+"pen-1" 1.0 0 -13791810 true "" "plot sum [health] of armor-allies"
+"pen-2" 1.0 0 -2674135 true "" "plot sum [health] of axis"
+"pen-3" 1.0 0 -2139308 true "" "plot sum [health] of armor-allies"
 
 @#$#@#$#@
 ## WHAT IS IT?
