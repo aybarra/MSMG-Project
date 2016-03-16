@@ -117,6 +117,34 @@ to place-mountains
   ]
   file-close
 
+  ;; Check if the color is yellow if so, se the terrainval to 2
+  ask patches [
+    ifelse pcolor = [237 237 49] [
+
+      set terrain-val (8 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+    ]
+    [
+      ifelse pcolor = [121 255 1] [
+        set terrain-val (2 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+      ][
+      ;; Otherwise to 20
+       set terrain-val (20 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+      ]
+    ]
+  ]
+
+  ;; Make those mountains a bitch to pass
+  ask mountains [
+    ask patch-here [
+      set terrain-val (100 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+    ]
+  ]
+
+  ask patches [
+    if terrain-val > 0 [
+      set plabel terrain-val
+    ]
+  ]
 end
 
 to place-axis
@@ -130,7 +158,8 @@ to place-axis
     set name "KG Stenkoff"
     set label name
     set unit-target (list ("3/1 AR"))
-    set objective-locations (list (.25 * max-pxcor) (min-pycor) (.30 * max-pxcor) (.90 * min-pycor) (.30 * max-pxcor) (.80 * min-pycor) (.5 * max-pxcor) (.70 * min-pycor))
+    ; set objective-locations (list (.25 * max-pxcor) (min-pycor) (.30 * max-pxcor) (.90 * min-pycor) (.30 * max-pxcor) (.80 * min-pycor) (.5 * max-pxcor) (.70 * min-pycor))
+    set objective-locations(list (.5 * max-pxcor) (.70 * min-pycor))
     set health starting-health
   ]
 
@@ -330,6 +359,10 @@ to go
   ;; Kill off any troop that health has reached 0
   check-death
 
+  ask links [
+    set thickness .5
+  ]
+
   if mouse-down?
   [ ask patch mouse-xcor mouse-ycor [ set pcolor red ]
     ask patch mouse-xcor mouse-ycor [ file-print mouse-xcor file-print mouse-ycor ] ]
@@ -370,112 +403,129 @@ end
 to perform-axis-movement [ name-of-batallion ]
   ;output-print name-of-batallion
   ;; Start with axis to save cycles
+
+
   ask axis [
-    let units (turtles with [ name = name-of-batallion ])
-    ask units [
-      ;; Fetch target name
-      let target-name (item 0 unit-target)
-
-      ;; Select the allies that we want to target
-      let ally-targets (turtles with [ name = target-name ])
-
-      ;; Select one of them (ideally the first in the list)
-      let current (one-of ally-targets)
-
-      let objx -1
-      let objy -1
-      ;if length objective-locations > 0 [
-        ifelse length objective-locations > 0 [
-          ;; Fetch the first coordinate to move to
-          set objx round (item 0 objective-locations)
-          ; set objective-index objective-index + 1
-          set objy round (item 1 objective-locations)
-        ][
-          if current != nobody[
-            set objx round [xcor] of current
-            set objy round [ycor] of current
-          ]
-        ]
-        ;; checking that the position matches objective location
-        ifelse current != nobody and (round xcor) = objx and (round ycor) = objy and distance current < enemy-radius and objx != -1 and objy != -1 [
-
-          ;; ATTACK
-          create-link-to current
-
-          let breed-check [breed] of current
-          let ally-health ([health] of current)
-          let axis-health (health)
-
-          ;; Axis-infantry
-          if breed = axis [
-            if breed-check = allies [
-              print "axis inf attacking ally inf"
-              ;; Call lanchester method for axis inf
-              lanchester-axis-inf-inf axis-health ally-health
-              set health remaining-health
-
-              ;; Call lanchester method for ally inf
-              lanchester-ally-inf-inf ally-health axis-health
-              print remaining-health
-              ask current [ set health remaining-health ]
-            ]
-            if breed-check = armor-allies [
-              ;; Do nothing...yet since inf can't hurt tanks
-            ]
-          ]
-          ;; Axis-armor
-          if breed = armor-axis [
-
-            ;; axis armor attacking allies inf --> Linear
-            if breed-check = allies [
-              print "axis ar attacking ally inf"
-              lanchester-ally-inf-ar ally-health axis-health
-              print remaining-health
-              ask current [ set health remaining-health]
-            ]
-            ;; Armor vs Armor
-            if breed-check = armor-allies [
-              ;; Does it for axis
-              axis-ar-ar axis-health ally-health
-              set health remaining-health
-
-              ;; Does it for allies
-              ally-ar-ar ally-health axis-health
-              ask current [ set health remaining-health ]
-            ]
-          ]
-
-          set engagement-count engagement-count + 1
-
-          ; Oh shit --> Triggers the allies to move
-          if engagement-count = 2 [
-            set allies-engaged true
-          ]
-
-          ; Remove an item from the objective locations
-          if length objective-locations > 0 [
-            set objective-locations remove-item 0 objective-locations
-            set objective-locations remove-item 0 objective-locations
-          ]
-        ]
-        [
-          ifelse (round xcor) = objx and (round ycor) = objy
-          [
-            ;; pop the next off the list
-            set objective-locations remove-item 0 objective-locations
-            set objective-locations remove-item 0 objective-locations
-          ]
-          [
-            ;; Otherwise keep moving towards it
-            if current != nobody and distance current > enemy-radius [
-              set heading towardsxy objx objy ;face one-of ally-targets
-              fd 1
-            ]
-          ]
-        ]
-      ;]
+    let units (turtles with [name = name-of-batallion])
+    let move-unit one-of units
+    ask move-unit [
+      downhill terrain-val
     ]
   ]
+
+  ;; TODO Put combat back in
+
+;  ask axis [
+;    let units (turtles with [ name = name-of-batallion ])
+;    ask units [
+;      ;; Fetch target name
+;      let target-name (item 0 unit-target)
+;
+;      ;; Select the allies that we want to target
+;      let ally-targets (turtles with [ name = target-name ])
+;
+;      ;; Select one of them (ideally the first in the list)
+;      let current (one-of ally-targets)
+;
+;      let objx -1
+;      let objy -1
+;
+;      ;; Select target location to move
+;      ;; Either one of the objective locations or the primary target location
+;      ifelse length objective-locations > 0 [
+;          ;; Fetch the first coordinate to move to
+;          set objx round (item 0 objective-locations)
+;          ; set objective-index objective-index + 1
+;          set objy round (item 1 objective-locations)
+;       ][
+;          if current != nobody [
+;            set objx round [xcor] of current
+;            set objy round [ycor] of current
+;          ]
+;       ]
+;
+;       ifelse (round xcor) = objx and (round ycor) = objy
+;       [
+;            if length objective-locations > 0 [
+;              ;; pop the next off the list
+;              set objective-locations remove-item 0 objective-locations
+;              set objective-locations remove-item 0 objective-locations
+;            ]
+;       ]
+;       [
+;            ;; Otherwise keep moving towards it
+;            if current != nobody and distance current > enemy-radius [
+;              set heading towardsxy objx objy ;face one-of ally-targets
+;              fd 1
+;            ]
+;        ]
+;
+;
+;        ;; Checking if the attacker has a target and their current location is within enemy-radius
+;        if current != nobody and distance current < enemy-radius and objx != -1 and objy != -1 [
+;
+;          ;; ATTACK
+;          create-link-to current
+;
+;
+;          let breed-check [breed] of current
+;          let ally-health ([health] of current)
+;          let axis-health (health)
+;
+;          ;; Axis-infantry
+;          if breed = axis [
+;            if breed-check = allies [
+;              print "axis inf attacking ally inf"
+;              ;; Call lanchester method for axis inf
+;              lanchester-axis-inf-inf axis-health ally-health
+;              set health remaining-health
+;
+;              ;; Call lanchester method for ally inf
+;              lanchester-ally-inf-inf ally-health axis-health
+;              print remaining-health
+;              ask current [ set health remaining-health ]
+;            ]
+;            if breed-check = armor-allies [
+;              ;; Do nothing...yet since inf can't hurt tanks
+;            ]
+;          ]
+;          ;; Axis-armor
+;          if breed = armor-axis [
+;
+;            ;; axis armor attacking allies inf --> Linear
+;            if breed-check = allies [
+;              print "axis ar attacking ally inf"
+;              lanchester-ally-inf-ar ally-health axis-health
+;              print remaining-health
+;              ask current [ set health remaining-health]
+;            ]
+;            ;; Armor vs Armor
+;            if breed-check = armor-allies [
+;              ;; Does it for axis
+;              axis-ar-ar axis-health ally-health
+;              set health remaining-health
+;
+;              ;; Does it for allies
+;              ally-ar-ar ally-health axis-health
+;              ask current [ set health remaining-health ]
+;            ]
+;          ]
+;
+;          set engagement-count engagement-count + 1
+;
+;          ; Oh shit --> Triggers the allies to move
+;          if engagement-count = 2 [
+;            set allies-engaged true
+;          ]
+;
+;          ; Remove an item from the objective locations, if there's something to remove
+;          if length objective-locations > 0 [
+;            set objective-locations remove-item 0 objective-locations
+;            set objective-locations remove-item 0 objective-locations
+;          ]
+;        ]
+;    ]
+;  ]
 end
 
 ;; Finish outputting to a file
@@ -602,10 +652,10 @@ NIL
 1
 
 BUTTON
-9
-33
-163
-66
+11
+10
+165
+43
 NIL
 finish-adding-mtns
 NIL
@@ -619,10 +669,10 @@ NIL
 1
 
 SLIDER
-11
-73
-183
-106
+13
+50
+185
+83
 opacity
 opacity
 0
@@ -634,10 +684,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-11
-124
-183
-157
+13
+83
+185
+116
 starting-health
 starting-health
 0
@@ -649,10 +699,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-11
-167
-183
-200
+13
+116
+185
+149
 enemy-radius
 enemy-radius
 0
@@ -664,25 +714,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-14
-227
+12
+154
+184
+187
+axis-ar-eff
+axis-ar-eff
+0
+1
+0.2
+.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+12
 186
-260
-axis-ar-eff
-axis-ar-eff
-0
-1
-0.2
-.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-16
-270
-188
-303
+184
+219
 axis-inf-eff
 axis-inf-eff
 0
@@ -695,9 +745,9 @@ HORIZONTAL
 
 SLIDER
 12
-311
+220
 184
-344
+253
 ally-ar-eff
 ally-ar-eff
 0
@@ -710,9 +760,9 @@ HORIZONTAL
 
 SLIDER
 12
-352
+261
 184
-385
+294
 ally-inf-eff
 ally-inf-eff
 0
@@ -725,9 +775,9 @@ HORIZONTAL
 
 PLOT
 3
-392
-371
-618
+429
+205
+655
 Health of different units
 NIL
 NIL
@@ -744,34 +794,50 @@ PENS
 "pen-2" 1.0 0 -2674135 true "" "plot sum [health] of axis"
 "pen-3" 1.0 0 -2139308 true "" "plot sum [health] of armor-allies"
 
+SLIDER
+13
+299
+185
+332
+reaction-time
+reaction-time
+0
+20
+10
+1
+1
+ticks
+HORIZONTAL
+
 @#$#@#$#@
 ## WHAT IS IT?
 
-Basic simulation with GIS data map of Tunisia placed in the background
+Netlogo simulation illustrating the Battle of Sidi Bouzid
 
 ## HOW IT WORKS
 
-GIS extension is used for the map data, the rest of the turtles themselves (allies and axis) were created based off the sample sheep and shepherds simulation
+In this current implementation we have created a gradient mapview of the goal terrain of the axis forces. This is provided loading map-terrain-routes.png and setting each patch member variable terrain-val based on the distance from the goal area.
 
 ## HOW TO USE IT
 
-Currently the only supported user interaction comes from the two sliders that represent the number of starting 'troops' for each side.
+Currently we are not using the side sliders and graphs, to run the simulation requires pressing setup and go.
 
 ## THINGS TO NOTICE
 
-Blue represents allies, red represents axis forces
+The axis forces tend to take the less expensive route to the target in most instances
 
 ## THINGS TO TRY
-
-Try out the sliders to see which side kills off the other and advances
+Currently only supports running from Setup and Go
 
 ## EXTENDING THE MODEL
 
-We plan on adding more inputs, abstract the forces to the macro level, but also zoom in on the Sidi Bouzid area to concentrate on a hypothetical strategy that ties in with our new research question.
+We plan on reincorporating combat as described by Dr McLean in class on 3/8 to reflect the macro level battle we are illustrating in our model.
 
 ## NETLOGO FEATURES
 
-n/a
+import-drawing for the background mapview
+import-pcolors-rgb for the patch variables
+downhill --> for more natural movement over using waypoints
 
 ## RELATED MODELS
 
