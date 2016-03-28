@@ -21,6 +21,8 @@ globals
   engagement-count
   dt
   remaining-health
+
+  unit-health-list-gold
 ]
 
 breed [ city-labels city-label ]
@@ -39,6 +41,7 @@ turtles-own
   name
   unit-target
   objective-locations
+  unit-health-list
 ]
 
 mountains-own
@@ -75,6 +78,8 @@ to setup
   set engagement-count 0
   set allies-engaged false
 
+  setup-unit-health
+
   ; file-open "mtn-locs.txt"
   place-axis
   ;; place-armour-axis
@@ -84,8 +89,8 @@ to setup
 
   set-default-shape allies "square"
   set-default-shape axis "square"
-  set-default-shape armor-axis "triangle"
-  set-default-shape armor-allies "triangle"
+  set-default-shape armor-axis "tank"
+  set-default-shape armor-allies "tank"
   set-default-shape mountains "triangle 2"
 
   set dt 1
@@ -147,6 +152,15 @@ to place-mountains
   ]
 end
 
+to setup-unit-health
+  let itr 0
+    set unit-health-list-gold (list 100)
+    while [itr < batallion-size - 1] [
+      set unit-health-list-gold lput 100 unit-health-list-gold
+      set itr itr + 1
+    ]
+end
+
 to place-axis
 
   ;; KG Stenkoff (1 infantry, 2 armor)
@@ -161,6 +175,9 @@ to place-axis
     ; set objective-locations (list (.25 * max-pxcor) (min-pycor) (.30 * max-pxcor) (.90 * min-pycor) (.30 * max-pxcor) (.80 * min-pycor) (.5 * max-pxcor) (.70 * min-pycor))
     set objective-locations(list (.5 * max-pxcor) (.70 * min-pycor))
     set health starting-health
+
+    set unit-health-list unit-health-list-gold
+    output-print unit-health-list
   ]
 
   create-armor-axis 1
@@ -173,6 +190,9 @@ to place-axis
     set unit-target (list ("3/1 AR"))
     set objective-locations (list ((.25 * max-pxcor) + 2) (min-pycor) ((.30 * max-pxcor) + 2) (.90 * min-pycor) ((.30 * max-pxcor) + 2) (.80 * min-pycor) ((.5 * max-pxcor) + 2) (.70 * min-pycor))
     set health starting-health
+
+    set unit-health-list unit-health-list-gold
+    output-print unit-health-list
   ]
 
   create-armor-axis 1
@@ -359,9 +379,9 @@ to go
   ;; Kill off any troop that health has reached 0
   check-death
 
-  ask links [
-    set thickness .5
-  ]
+;  ask links [
+;    set thickness .5
+;  ]
 
   if mouse-down?
   [ ask patch mouse-xcor mouse-ycor [ set pcolor red ]
@@ -404,7 +424,7 @@ to perform-axis-movement [ name-of-batallion ]
   ;output-print name-of-batallion
   ;; Start with axis to save cycles
 
-
+  ;; Check to see if an enemy is in range
   ask axis [
     let units (turtles with [name = name-of-batallion])
     let move-unit one-of units
@@ -413,8 +433,8 @@ to perform-axis-movement [ name-of-batallion ]
     ]
   ]
 
-  ;; TODO Put combat back in
 
+  ;; TODO Put combat back in
 ;  ask axis [
 ;    let units (turtles with [ name = name-of-batallion ])
 ;    ask units [
@@ -593,11 +613,11 @@ end
 GRAPHICS-WINDOW
 210
 10
-1338
-704
+1940
+1061
 -1
 -1
-13.0
+20.0
 1
 10
 1
@@ -707,7 +727,7 @@ enemy-radius
 enemy-radius
 0
 10
-3
+0
 1
 1
 NIL
@@ -767,7 +787,7 @@ ally-inf-eff
 ally-inf-eff
 0
 1
-0.2
+1
 .1
 1
 NIL
@@ -807,6 +827,21 @@ reaction-time
 1
 1
 ticks
+HORIZONTAL
+
+SLIDER
+27
+348
+199
+381
+batallion-size
+batallion-size
+0
+1000
+500
+10
+1
+NIL
 HORIZONTAL
 
 @#$#@#$#@
@@ -989,6 +1024,26 @@ Circle -16777216 true false 113 68 74
 Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
 Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
 
+german
+false
+15
+Rectangle -1 true true 127 79 172 94
+Polygon -7500403 true false 105 90 60 195 90 210 135 105
+Polygon -7500403 true false 195 90 240 195 210 210 165 105
+Circle -1 true true 110 5 80
+Polygon -7500403 true false 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Polygon -6459832 true false 120 90 105 90 180 195 180 165
+Line -6459832 false 109 105 139 105
+Line -6459832 false 122 125 151 117
+Line -6459832 false 137 143 159 134
+Line -6459832 false 158 179 181 158
+Line -6459832 false 146 160 169 146
+Rectangle -6459832 true false 120 193 180 201
+Polygon -7500403 true false 122 4 107 16 102 39 105 53 135 30 195 45 189 17 172 2 145 0
+Polygon -16777216 true false 183 90 240 15 247 22 193 90
+Rectangle -6459832 true false 114 187 128 208
+Rectangle -6459832 true false 177 187 191 208
+
 house
 false
 0
@@ -1026,6 +1081,26 @@ Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300
 Rectangle -7500403 true true 127 79 172 94
 Polygon -7500403 true true 195 90 240 150 225 180 165 105
 Polygon -7500403 true true 105 90 60 150 75 180 135 105
+
+person_soldier
+false
+0
+Rectangle -7500403 true true 127 79 172 94
+Polygon -10899396 true false 105 90 60 195 90 210 135 105
+Polygon -10899396 true false 195 90 240 195 210 210 165 105
+Circle -7500403 true true 110 5 80
+Polygon -10899396 true false 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Polygon -6459832 true false 120 90 105 90 180 195 180 165
+Line -6459832 false 109 105 139 105
+Line -6459832 false 122 125 151 117
+Line -6459832 false 137 143 159 134
+Line -6459832 false 158 179 181 158
+Line -6459832 false 146 160 169 146
+Rectangle -6459832 true false 120 193 180 201
+Polygon -6459832 true false 122 4 107 16 102 39 105 53 148 34 192 27 189 17 172 2 145 0
+Polygon -16777216 true false 183 90 240 15 247 22 193 90
+Rectangle -6459832 true false 114 187 128 208
+Rectangle -6459832 true false 177 187 191 208
 
 plant
 false
@@ -1070,6 +1145,30 @@ star
 false
 0
 Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 94 175 3 108 116 108
+
+tank
+true
+0
+Rectangle -7500403 true true 144 0 159 105
+Rectangle -6459832 true false 195 45 255 255
+Rectangle -16777216 false false 195 45 255 255
+Rectangle -6459832 true false 45 45 105 255
+Rectangle -16777216 false false 45 45 105 255
+Line -16777216 false 45 75 255 75
+Line -16777216 false 45 105 255 105
+Line -16777216 false 45 60 255 60
+Line -16777216 false 45 240 255 240
+Line -16777216 false 45 225 255 225
+Line -16777216 false 45 195 255 195
+Line -16777216 false 45 150 255 150
+Polygon -7500403 true true 90 60 60 90 60 240 120 255 180 255 240 240 240 90 210 60
+Rectangle -16777216 false false 135 105 165 120
+Polygon -16777216 false false 135 120 105 135 101 181 120 225 149 234 180 225 199 182 195 135 165 120
+Polygon -16777216 false false 240 90 210 60 211 246 240 240
+Polygon -16777216 false false 60 90 90 60 89 246 60 240
+Polygon -16777216 false false 89 247 116 254 183 255 211 246 211 237 89 236
+Rectangle -16777216 false false 90 60 210 90
+Rectangle -16777216 false false 143 0 158 105
 
 target
 false
@@ -1160,6 +1259,17 @@ NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 default
+0.0
+-0.2 0 0.0 1.0
+0.0 1 1.0 0.0
+0.2 0 0.0 1.0
+link direction
+true
+0
+Line -7500403 true 150 150 90 180
+Line -7500403 true 150 150 210 180
+
+line2
 0.0
 -0.2 0 0.0 1.0
 0.0 1 1.0 0.0
