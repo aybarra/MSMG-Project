@@ -13,6 +13,10 @@ globals
 
   bat-name
   allies-engaged
+  engagementXCor
+  engagementYCor
+  terrainUpdated
+
   engagement-count
   dt
   remaining-health
@@ -34,6 +38,7 @@ patches-own
   terrain-val
   ally-retreat-val
   axis-retreat-val
+  ally-terrain-val
 ]
 
 turtles-own
@@ -78,6 +83,8 @@ to setup
 
   set engagement-count 0
   set allies-engaged false
+  set reaction-delay -1
+  set terrainUpdated false
 
   set turtle-size 2
   setup-unit-health
@@ -202,6 +209,28 @@ to setup-ally-retreat
   ask mountains [
     ask patch-here [
       set ally-retreat-val (100 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+    ]
+  ]
+end
+
+to setup-ally-assist [ xCord yCord ]
+  ask patches [
+    ifelse pcolor = [237 237 49] [
+      set ally-terrain-val (8 * [distance patch xCord yCord] of patch pxcor pycor)
+    ][
+      ifelse pxcor = xCord and pycor = yCord[
+          set ally-terrain-val 2
+      ][
+          ;; Otherwise to 20
+          set ally-terrain-val (20 * [distance patch (xCord) (yCord)] of patch pxcor pycor)
+      ]
+    ]
+  ]
+
+  ;; Make those mountains a bitch to pass
+  ask mountains [
+    ask patch-here [
+      set ally-terrain-val (100 * [distance patch (xCord) (yCord)] of patch pxcor pycor)
     ]
   ]
 end
@@ -413,6 +442,12 @@ to go
     perform-axis-movement bat-name
   ]
 
+  ;; Setup the ally assist if necessary
+  if allies-engaged = true and terrainUpdated = false [
+    setup-ally-assist engagementXCor engagementYCor
+    set terrainUpdated true
+  ]
+
   ;; Allies move next
   foreach ally-batallion-names [
     set bat-name ?
@@ -427,9 +462,10 @@ to go
   ;; Kill off any troop that health has reached 0
   check-death
 
-;  if mouse-down?
-;  [ ask patch mouse-xcor mouse-ycor [ set pcolor red ]
-;    ask patch mouse-xcor mouse-ycor [ file-print mouse-xcor file-print mouse-ycor ] ]
+  ;; deduct from reaction-delay
+  if reaction-delay > 0 [
+    set reaction-delay reaction-delay - 1
+  ]
 
   tick
 end
@@ -455,38 +491,12 @@ to perform-allies-movement [ name-of-batallion ]
           downhill ally-retreat-val
         ]
       ][
-          if reaction-delay = 0 [
-
+          ;; Otherwise move to assist
+          if reaction-delay = 0 and allies-engaged = true [
+            downhill ally-terrain-val
           ]
       ]
   ]
-
-;  if allies-engaged [
-;    ask allies [
-;      let units (turtles with [ name = name-of-batallion ])
-;      ask units [
-;
-;        if length objective-locations > 0 [
-;          ;; Fetch the first coordinate to move to
-;          let objx round (item 0 objective-locations)
-;          ; set objective-index objective-index + 1
-;          let objy round (item 1 objective-locations)
-;
-;          ifelse (round xcor) = objx and (round ycor) = objy
-;          [
-;            ;; pop the next off the list
-;            set objective-locations remove-item 0 objective-locations
-;            set objective-locations remove-item 0 objective-locations
-;          ]
-;          [
-;            ;; Otherwise keep moving towards it
-;            set heading towardsxy objx objy ;face one-of ally-targets
-;            fd 1
-;          ]
-;        ]
-;      ]
-;    ]
-;  ]
 end
 
 to perform-axis-movement [ name-of-batallion ]
@@ -536,6 +546,10 @@ to perform-axis-movement [ name-of-batallion ]
               set allies-engaged true
               set reaction-delay 5
 
+              ask target [
+                set engagementXCor xcor
+                set engagementYCor ycor
+              ]
               ask self [ create-link-to target]
               ask target [ set engaged true ]
           ]
@@ -916,21 +930,6 @@ HORIZONTAL
 
 SLIDER
 13
-299
-185
-332
-reaction-time
-reaction-time
-0
-20
-10
-1
-1
-ticks
-HORIZONTAL
-
-SLIDER
-13
 335
 185
 368
@@ -940,21 +939,6 @@ batallion-size
 1000
 500
 100
-1
-NIL
-HORIZONTAL
-
-SLIDER
-14
-375
-186
-408
-armor-batallion
-armor-batallion
-0
-36
-36
-1
 1
 NIL
 HORIZONTAL
