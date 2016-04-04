@@ -22,6 +22,7 @@ globals
   remaining-health
 
   unit-health-list-gold
+  unit-health-list-gold-axis
   turtle-size
 
   remaining-health-list
@@ -29,7 +30,7 @@ globals
   ally-batallion-names
   axis-batallion-names
 
-  reaction-delay
+  ;;reaction-delay
 ]
 
 patches-own
@@ -50,6 +51,7 @@ turtles-own
   unit-health-list
 
   half-health
+  original-health
 ]
 
 allies-own
@@ -83,11 +85,12 @@ to setup
 
   set engagement-count 0
   set allies-engaged false
-  set reaction-delay -1
+  ;;set reaction-delay -1
   set terrainUpdated false
 
   set turtle-size 2
   setup-unit-health
+  setup-axis-health
 
   ; file-open "mtn-locs.txt"
   place-axis
@@ -200,7 +203,7 @@ to setup-ally-retreat
         set ally-retreat-val (2 * [distance patch (.25 * max-pxcor) (.30 * min-pycor)] of patch pxcor pycor)
       ][
       ;; Otherwise to 20
-       set ally-retreat-val (20 * [distance patch (.25 * max-pxcor) (.30 * min-pycor)] of patch pxcor pycor)
+       set ally-retreat-val (8 * [distance patch (.25 * max-pxcor) (.30 * min-pycor)] of patch pxcor pycor)
       ]
     ]
   ]
@@ -222,7 +225,7 @@ to setup-ally-assist [ xCord yCord ]
           set ally-terrain-val 2
       ][
           ;; Otherwise to 20
-          set ally-terrain-val (20 * [distance patch (xCord) (yCord)] of patch pxcor pycor)
+          set ally-terrain-val (12 * [distance patch (xCord) (yCord)] of patch pxcor pycor)
       ]
     ]
   ]
@@ -244,6 +247,15 @@ to setup-unit-health
     ]
 end
 
+to setup-axis-health
+  let itr 0
+    set unit-health-list-gold-axis (list starting-health)
+    while [itr < axis-battallion-size - 1] [
+      set unit-health-list-gold-axis lput starting-health unit-health-list-gold-axis
+      set itr itr + 1
+    ]
+end
+
 to place-axis
 
   ;; KG Stenkoff (1 infantry, 2 armor)
@@ -251,37 +263,39 @@ to place-axis
   [
     set color (list 255 0 0 (opacity))
     set size turtle-size
-    setxy (.50 * max-pxcor) min-pycor
+    setxy (.20 * max-pxcor) min-pycor
     set name "KG Stenkoff"
     set label name
     set unit-target (list ("3/1 AR"))
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
   create-armor-axis 1
   [
     set color (list 255 0 0 (opacity))
     set size turtle-size
-    setxy ((.50 * max-pxcor) + 2) min-pycor
+    setxy ((.20 * max-pxcor) + 2) min-pycor
     set name "KG Stenkoff"
     set unit-target (list ("3/1 AR"))
+    set heading 0
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
   create-armor-axis 1
   [
     set color (list 255 0 0 (opacity))
     set size turtle-size
-    setxy ((.50 * max-pxcor) + 4) min-pycor
+    setxy ((.20 * max-pxcor) + 4) min-pycor
     set name "KG Stenkoff"
     set unit-target (list ("3/1 AR"))
+    set heading 0
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
   ;; KG Schutte (1 infantry, 1 armor)
@@ -293,9 +307,10 @@ to place-axis
     ;set label who
     set name "KG Schutte"
     set unit-target (list ("3-168 IN"))
+    set heading 0
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
   create-armor-axis 1
@@ -306,9 +321,10 @@ to place-axis
     setxy ((.68 * max-pxcor)) min-pycor
     set label name
     set unit-target (list ("3-168 IN"))
+    set heading 0
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
   ;; KG Reiman (1 infantry)
@@ -321,8 +337,8 @@ to place-axis
     set label name
     set unit-target (list ("3/1 AR"))
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
   ;; KG Gerhardt (1 armor, 1 infantry)
@@ -334,9 +350,10 @@ to place-axis
     ;set label who
     set name "KG Gerhardt"
     set unit-target (list ("2-168 IN"))
+    set heading 270
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
   create-axis 1
@@ -347,9 +364,10 @@ to place-axis
     set name "KG Gerhardt"
     set label name
     set unit-target (list ("2-168 IN"))
+    set heading 270
 
-    set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set unit-health-list unit-health-list-gold-axis
+    set original-health (sum unit-health-list)
   ]
 
 end
@@ -366,7 +384,7 @@ to place-allies
     set label name
 
     set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set original-health (sum unit-health-list)
   ]
 
   ;; 3/1 AR
@@ -378,9 +396,10 @@ to place-allies
     set name "3/1 AR"
     set label name
     set objective-locations (list (.55 * max-pxcor) (.62 * min-pycor))
+    set heading 90
 
     set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set original-health (sum unit-health-list)
   ]
 
   ;; 2-168 IN
@@ -393,7 +412,7 @@ to place-allies
     set label name
 
     set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set original-health (sum unit-health-list)
   ]
 
   ;; Combat command C (1 infantry, 1 armor)
@@ -404,9 +423,10 @@ to place-allies
     setxy (.39 * max-pxcor) (.25 * min-pycor)
     set name "CCC"
     set label name
+    set heading 190
 
     set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set original-health (sum unit-health-list)
   ]
 
   create-armor-allies 1
@@ -414,10 +434,11 @@ to place-allies
     set color (list 0 0 255 (opacity))
     set size turtle-size
     setxy (.36 * max-pxcor) (.25 * min-pycor)
-    ;set label who
+    set heading 190
+    set name "CCC"
 
     set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set original-health (sum unit-health-list)
   ]
 
   ;; 1/6 AR (1 armor)
@@ -428,9 +449,10 @@ to place-allies
     setxy (.23 * max-pxcor) (.29 * min-pycor)
     set name "1/6 AR"
     set label name
+    set heading 135
 
     set unit-health-list unit-health-list-gold
-    set half-health (.5 * sum unit-health-list)
+    set original-health (sum unit-health-list)
   ]
 end
 
@@ -456,7 +478,7 @@ to go
 
   ;; Check to see if distances are farther away and if so break link
   ask links [
-    if link-length > enemy-radius [die]
+    if link-length > engagement-range [die]
   ]
 
   ;; Kill off any troop that health has reached 0
@@ -480,7 +502,7 @@ to perform-allies-movement [ name-of-batallion ]
 
       ;; Check health and if you're less than 50% then retreat
       ask move-unit [
-        if (sum unit-health-list) < (half-health) [
+        if (sum unit-health-list) < (original-health * attrition) [
           set retreating true
         ]
       ]
@@ -508,7 +530,7 @@ to perform-axis-movement [ name-of-batallion ]
 
       ;; Check health and if you're less than 50% then retreat
       ask move-unit [
-        if (sum unit-health-list) < (half-health) [
+        if (sum unit-health-list) < (original-health * attrition) [
           set retreating true
         ]
       ]
@@ -520,38 +542,55 @@ to perform-axis-movement [ name-of-batallion ]
           downhill axis-retreat-val
         ]
       ][
-          let attacked false
-          let target nobody
-          ;; Check to see if an armor enemy is in range
-          ;; If so then attack
-          ask armor-allies in-cone enemy-radius 360 [
-              set target self
-              set attacked true
-          ]
-          ;; Next check if an infantry enemy is in range
-          if attacked = false [
-              ask allies in-cone enemy-radius 360 [
+
+          ;; Check if there's a link with another turtle already
+          ifelse any? out-link-neighbors [
+            output-print word ([name] of self) (word "OUTLINK NEIGHBORS IS NON-EMPTY: " (out-link-neighbors))
+            ;; Attack the same guy...
+            attack self (one-of out-link-neighbors)
+          ][
+
+              output-print word ([name] of self) ": NO TARGET ACQUIRED, SEARCHING"
+              let attacked false
+              let target nobody
+              ;; Check to see if an armor enemy is in range
+              ;; If so then attack
+              ask armor-allies in-cone detection-range 360 [
                   set target self
                   set attacked true
               ]
-          ]
-          ;; Move towards objective city
-          ifelse attacked = false [
-              if (breed = axis and (ticks mod infantry-delay = 0)) or breed = armor-axis [
-                downhill terrain-val
+              ;; Next check if an infantry enemy is in range
+              if attacked = false [
+                  ask allies in-cone detection-range 360 [
+                      set target self
+                      set attacked true
+                  ]
               ]
-          ;; Otherwise attack the target
-          ][
-              attack self target
-              set allies-engaged true
-              set reaction-delay 5
+              ;; Move towards objective city
+              ifelse attacked = false [
+                  if (breed = axis and (ticks mod infantry-delay = 0)) or breed = armor-axis [
+                    downhill terrain-val
+                  ]
+                ;; Otherwise attack the target
+               ][
+               ifelse distance target <= engagement-range [
+                  attack self target
+                  if allies-engaged = false [
 
-              ask target [
-                set engagementXCor xcor
-                set engagementYCor ycor
+                     set allies-engaged true
+                     ask target [
+                       set engagementXCor xcor
+                       set engagementYCor ycor
+                     ]
+                  ]
+
+                  ask self [ create-link-to target]
+                  ask target [ set engaged true ]
+                  ][
+                     face target
+                     fd 1
+                  ]
               ]
-              ask self [ create-link-to target]
-              ask target [ set engaged true ]
           ]
       ]
      ]
@@ -590,7 +629,7 @@ to attack [attacker target]
   ;; ============
   ;; Axis attacks
   ;; ============
-  ;; Axis infantry attacking armor axis
+  ;; Axis infantry attacking armor allies
   if (attack-breed) = axis and target-breed = armor-allies [
     output-print "AXIS INF ATTACKING ARMOR ALLIES"
 
@@ -618,6 +657,7 @@ to attack [attacker target]
 
     ;; Update ally health
     lanchester-ally-inf-inf target-health attack-health
+    output-print word "Remaining health for ally inf is: " remaining-health
     update-health ([unit-health-list] of target) remaining-health
     ask target [ set unit-health-list remaining-health-list ]
 
@@ -661,7 +701,7 @@ end
 ;; ====================
 ;; --------- Ally infantry attacking Axis infantry --------
 to lanchester-ally-inf-inf [ ally-inf-health axis-inf-health ]
-  let remaining-ally (.5 * ((ally-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * axis-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff))))
+  let remaining-ally abs ((.5 * ((ally-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * axis-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff)))))
   set remaining-health remaining-ally
 end
 
@@ -676,7 +716,7 @@ to lanchester-ally-ar-inf [ ally-ar-health axis-inf-health ]
   let amount (100 + 100 * (-1 * ally-tank-killing-eff))
   let prob random amount
   ifelse prob < 50 [
-    set remaining-health (.5 * ally-ar-health)
+    set remaining-health (.9 * ally-ar-health)
   ][
     set remaining-health ally-ar-health
   ]
@@ -685,7 +725,7 @@ end
 ;; ------ Ally armor attacking Axis armor ------------
 to ally-ar-ar [ ally-ar-health axis-ar-health ]
   let prob random 100
-  ifelse prob < 50 [
+  ifelse prob < 10 [
     set remaining-health (.5  * ally-ar-health)
   ][
     set remaining-health (ally-ar-health)
@@ -697,7 +737,7 @@ end
 ;; ===================
 ;; -------- Axis infantry attacking Ally infantry -------
 to lanchester-axis-inf-inf [ axis-inf-health ally-inf-health ]
-  let remaining-axis (.5 * ((axis-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * ally-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff))))
+  let remaining-axis abs ((.5 * ((axis-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * ally-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff)))))
   set remaining-health remaining-axis
 end
 
@@ -707,7 +747,7 @@ to lanchester-axis-ar-inf [ axis-ar-health ally-inf-health ]
   let amount (100 + 100 * (-1 * ally-tank-killing-eff))
   let prob random amount
   ifelse prob < 50 [
-    set remaining-health (.5 * axis-ar-health)
+    set remaining-health (.9 * axis-ar-health)
   ][
     set remaining-health axis-ar-health
   ]
@@ -722,7 +762,7 @@ end
 ;; --------- Axis armor attacking Ally armor ------------
 to axis-ar-ar [ axis-unit-health ally-unit-health ]
   let prob random 100
-  ifelse prob < 50 [
+  ifelse prob < 10 [
     set remaining-health (.5  * axis-unit-health)
   ][
     set remaining-health axis-unit-health
@@ -766,8 +806,8 @@ GRAPHICS-WINDOW
 85
 -50
 0
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -854,15 +894,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-13
-116
-185
-149
-enemy-radius
-enemy-radius
+20
+541
+192
+574
+engagement-range
+engagement-range
 0
-25
-7
+3
+3
 1
 1
 NIL
@@ -876,9 +916,9 @@ SLIDER
 axis-ar-eff
 axis-ar-eff
 0
-1
-0.2
-.1
+.2
+0.001
+.001
 1
 NIL
 HORIZONTAL
@@ -891,9 +931,9 @@ SLIDER
 axis-inf-eff
 axis-inf-eff
 0
-1
-0.2
-.1
+.2
+0.001
+.001
 1
 NIL
 HORIZONTAL
@@ -906,9 +946,9 @@ SLIDER
 ally-ar-eff
 ally-ar-eff
 0
-1
-0.2
-.1
+.2
+0.001
+.001
 1
 NIL
 HORIZONTAL
@@ -921,9 +961,9 @@ SLIDER
 ally-inf-eff
 ally-inf-eff
 0
-1
-0.2
-.1
+.2
+0.001
+.001
 1
 NIL
 HORIZONTAL
@@ -967,7 +1007,7 @@ ally-tank-killing-eff
 ally-tank-killing-eff
 0
 1
-1
+0.5
 .1
 1
 NIL
@@ -1003,7 +1043,7 @@ infantry-delay
 infantry-delay
 0
 5
-3
+1
 1
 1
 NIL
@@ -1019,6 +1059,62 @@ reaction-delay
 17
 1
 11
+
+SLIDER
+21
+495
+193
+528
+attrition
+attrition
+0
+1
+0.1
+.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+19
+581
+191
+614
+detection-range
+detection-range
+0
+10
+10
+1
+1
+NIL
+HORIZONTAL
+
+INPUTBOX
+1205
+364
+1360
+424
+reaction-delay
+0
+1
+0
+Number
+
+SLIDER
+9
+373
+183
+406
+axis-battallion-size
+axis-battallion-size
+375
+375
+375
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
