@@ -1384,8 +1384,9 @@ Netlogo simulation illustrating the Battle of Sidi Bouzid
 
 ## HOW IT WORKS
 
-The model illustrates the battle using batallion positions, both forces use the downhill function to move based on a map-terrain.png that make the roads available. For retreat there are separate .png's that determine where the retreat location is for each side (northwest for the allies, back through the pass for the axis forces)
+-The model illustrates the battle using batallion positions, both forces use the downhill function to move based on a map-terrain.png that make the roads available. For retreat there are separate .png's that determine where the retreat location is for each side (northwest for the allies, back through the pass for the axis forces)
 - Because the downhill function doesn't always work the way we want it to (there are instances where a turtle reaches a local minimum), if the turtle remains parked for 20 ticks, I allow them to move one step in the direction they are facing.
+- We have setup inf-inf using lanchester attrition, ar-inf using linear lanchester attrition, and inf-ar and ar-ar as direct fire model
 
 ## HOW TO USE IT
 
@@ -1393,14 +1394,15 @@ Currently the only input that we'd recommend changing is reaction-delay
 
 ## THINGS TO NOTICE
 
-KG Schutte arrives (becomes unhidden) after 3-168 IN is attacked by KG Reimann or KG Gerhardt, KG Stenkoff arrives after Schutte engages an ally force. (This is done to make the model run longer and more closely parallel the movement and placement of forces with that of history). Ally forces move in to the location where the first engagement is registered. If ally forces are attacked before then, they will attack using the appropriate attack equations depending on the engagement type. For each experimental run we capture the number of forces that register a retreat status (loss of 50%), as well as the remaining health for each sides forces
+KG Schutte arrives (becomes unhidden) after 3-168 IN is attacked by KG Reimann or KG Gerhardt, KG Stenkoff arrives after Schutte engages an ally force. (This is done to make the model run longer and more closely parallel the movement and placement of forces with that of history). Ally forces move in to the location where the first engagement is registered. If ally forces are attacked before then, they will attack using the appropriate attack equations depending on the engagement type.
+
+For each experimental run we capture the number of forces that register a retreat status (loss of 50%), as well as the remaining health for each sides forces both infantry and armor
 
 ## THINGS TO TRY
 Currently only supports running from Setup and Go, modifying the reaction-delay text input to see how battle changes
 
 ## EXTENDING THE MODEL
-
-TBD
+It's worth investigating alternatives to the downhill function, its convenient as a netlogo paradigm but it'd be interesting to see if it could be substitued with A* or Djikstra's algorithm output for determining a path to travel.
 
 ## NETLOGO FEATURES
 
