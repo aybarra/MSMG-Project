@@ -31,6 +31,15 @@ globals
 
   ally-batallion-names
   axis-batallion-names
+
+
+  total-health-ally-inf
+  total-health-ally-ar
+  total-health-axis-inf
+  total-health-axis-ar
+
+  total-allies-retreated
+  total-axis-retreated
 ]
 
 patches-own
@@ -38,7 +47,7 @@ patches-own
   terrain-val
   ally-retreat-val
   axis-retreat-val
-  ally-terrain-val
+  ally-assist-val
 ]
 
 turtles-own
@@ -51,6 +60,13 @@ turtles-own
 
   half-health
   original-health
+
+  same-pos-count
+  old-posx
+  old-posy
+  retreated
+
+  bonus
 ]
 
 allies-own
@@ -72,7 +88,7 @@ to setup
 
   set screen-size (max-pxcor - min-pxcor) * (max-pycor - min-pycor)
 
-  ;import-drawing "map-terrain.png"
+  import-drawing "map-terrain.png"
   import-pcolors-rgb "map-terrain-routes.png"
 
   set axis-grouping-radius 10
@@ -105,6 +121,21 @@ to setup
 
   set dt 1
 
+  set total-health-ally-inf 0
+  ask allies [ set total-health-ally-inf total-health-ally-inf + sum unit-health-list ]
+
+  set total-health-ally-ar 0
+  ask armor-allies [ set total-health-ally-ar total-health-ally-ar + sum unit-health-list ]
+
+  set total-health-axis-inf 0
+  ask axis [ set total-health-axis-inf total-health-axis-inf + sum unit-health-list ]
+
+  set total-health-axis-ar 0
+  ask armor-axis [ set total-health-axis-ar total-health-axis-ar + sum unit-health-list ]
+
+  set total-axis-retreated 0
+  set total-allies-retreated 0
+
   reset-ticks
 
 end
@@ -130,14 +161,14 @@ to place-mountains
   ask patches [
     ifelse pcolor = [237 237 49] [
 
-      set terrain-val (8 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+      set terrain-val (8 * (distance patch (.55 * max-pxcor) (.60 * min-pycor)))
     ]
     [
       ifelse pcolor = [121 255 1] [
-        set terrain-val (2 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+        set terrain-val (2 * (distance patch (.55 * max-pxcor) (.60 * min-pycor)))
       ][
       ;; Otherwise to 20
-       set terrain-val (20 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+       set terrain-val (20 * (distance patch (.55 * max-pxcor) (.60 * min-pycor)))
       ]
     ]
   ]
@@ -145,7 +176,7 @@ to place-mountains
   ;; Make those mountains a bitch to pass
   ask mountains [
     ask patch-here [
-      set terrain-val (100 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
+      set terrain-val (100 * (distance patch (.55 * max-pxcor) (.60 * min-pycor)))
     ]
   ]
 
@@ -158,15 +189,15 @@ to setup-axis-retreat
   ;; Check if the color is yellow if so, se the terrainval to 20
   ask patches [
     ifelse pcolor = [237 237 49] [
-      set axis-retreat-val (8 * [distance patch (.90 * max-pxcor) (.48 * min-pycor)] of patch pxcor pycor)
+      set axis-retreat-val (8 * (distance patch (.90 * max-pxcor) (.48 * min-pycor)))
     ]
     [
       ;; Color red for ideal area
       ifelse pcolor = [215 50 41] [
-        set axis-retreat-val (2 * [distance patch (.90 * max-pxcor) (.48 * min-pycor)] of patch pxcor pycor)
+        set axis-retreat-val (2 * (distance patch (.90 * max-pxcor) (.48 * min-pycor)))
       ][
       ;; Otherwise to 20 for the sandy areas
-       set axis-retreat-val (20 * [distance patch (.90 * max-pxcor) (.48 * min-pycor)] of patch pxcor pycor)
+       set axis-retreat-val (20 * (distance patch (.90 * max-pxcor) (.48 * min-pycor)))
       ]
     ]
   ]
@@ -174,7 +205,7 @@ to setup-axis-retreat
   ;; Make the mountains a bitch to pass
   ask mountains [
     ask patch-here [
-      set axis-retreat-val (100 * [distance patch (.90 * max-pxcor) (.48 * min-pycor)] of patch pxcor pycor)
+      set axis-retreat-val (100 * (distance patch (.90 * max-pxcor) (.48 * min-pycor)))
     ]
   ]
 end
@@ -186,15 +217,15 @@ to setup-ally-retreat
   ask patches [
     ifelse pcolor = [237 237 49] [
 
-      set ally-retreat-val (8 * [distance patch (.25 * max-pxcor) (.30 * min-pycor)] of patch pxcor pycor)
+      set ally-retreat-val (8 * (distance patch (.25 * max-pxcor) (.30 * min-pycor)))
     ]
     [
       ;; Color blue for ally retreat
       ifelse pcolor = [52 94 171] [
-        set ally-retreat-val (2 * [distance patch (.25 * max-pxcor) (.30 * min-pycor)] of patch pxcor pycor)
+        set ally-retreat-val (2 * (distance patch (.25 * max-pxcor) (.30 * min-pycor)))
       ][
       ;; Otherwise to 20
-       set ally-retreat-val (8 * [distance patch (.25 * max-pxcor) (.30 * min-pycor)] of patch pxcor pycor)
+       set ally-retreat-val (8 * (distance patch (.25 * max-pxcor) (.30 * min-pycor)))
       ]
     ]
   ]
@@ -202,8 +233,7 @@ to setup-ally-retreat
   ;; Make those mountains a bitch to pass
   ask mountains [
     ask patch-here [
-      set ally-retreat-val (100 * [distance patch (.55 * max-pxcor) (.60 * min-pycor)] of patch pxcor pycor)
-
+      set ally-retreat-val (100 * (distance patch (.55 * max-pxcor) (.60 * min-pycor)))
     ]
   ]
 end
@@ -211,13 +241,13 @@ end
 to setup-ally-assist [ xCord yCord ]
   ask patches [
     ifelse pcolor = [237 237 49] [
-      set ally-terrain-val (8 * [distance patch xCord yCord] of patch pxcor pycor)
+      set ally-assist-val (8 * (distance patch xCord yCord))
     ][
       ifelse pxcor = xCord and pycor = yCord[
-          set ally-terrain-val 2
+          set ally-assist-val 2
       ][
           ;; Otherwise to 20
-          set ally-terrain-val (12 * [distance patch (xCord) (yCord)] of patch pxcor pycor)
+          set ally-assist-val (12 * (distance patch (xCord) (yCord)))
       ]
     ]
   ]
@@ -225,7 +255,7 @@ to setup-ally-assist [ xCord yCord ]
   ;; Make those mountains a bitch to pass
   ask mountains [
     ask patch-here [
-      set ally-terrain-val (100 * [distance patch (xCord) (yCord)] of patch pxcor pycor)
+      set ally-assist-val (100 * (distance patch (xCord) (yCord)))
     ]
   ]
 end
@@ -277,6 +307,7 @@ to place-axis
     set name "KG Stenkoff"
     set label name
     set unit-target (list ("3/1 AR"))
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-inf
     set original-health (sum unit-health-list)
@@ -291,6 +322,7 @@ to place-axis
     set name "KG Stenkoff"
     set unit-target (list ("3/1 AR"))
     set heading 0
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-ar
     set original-health (sum unit-health-list)
@@ -305,6 +337,7 @@ to place-axis
     set name "KG Stenkoff"
     set unit-target (list ("3/1 AR"))
     set heading 0
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-ar
     set original-health (sum unit-health-list)
@@ -321,6 +354,7 @@ to place-axis
     set name "KG Schutte"
     set unit-target (list ("3-168 IN"))
     set heading 0
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-inf
     set original-health (sum unit-health-list)
@@ -338,6 +372,7 @@ to place-axis
     set label name
     set unit-target (list ("3-168 IN"))
     set heading 0
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-ar
     set original-health (sum unit-health-list)
@@ -355,9 +390,12 @@ to place-axis
     setxy ((.78 * max-pxcor)) ((.62 * min-pycor))
     set label name
     set unit-target (list ("3/1 AR"))
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-inf
     set original-health (sum unit-health-list)
+
+    set bonus true
   ]
 
   ;; KG Gerhardt (1 armor, 1 infantry)
@@ -370,9 +408,12 @@ to place-axis
     set name "KG Gerhardt"
     set unit-target (list ("2-168 IN"))
     set heading 270
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-ar
     set original-health (sum unit-health-list)
+
+    set bonus true
   ]
 
   create-axis 1
@@ -384,9 +425,12 @@ to place-axis
     set label name
     set unit-target (list ("2-168 IN"))
     set heading 270
+    set retreated false
 
     set unit-health-list unit-health-list-gold-axis-inf
     set original-health (sum unit-health-list)
+
+    set bonus true
   ]
 
 end
@@ -401,6 +445,7 @@ to place-allies
     setxy (.71 * max-pxcor) (.83 * min-pycor)
     set name "3-168 IN"
     set label name
+    set retreated false
 
     set unit-health-list unit-health-list-gold-ally-inf
     set original-health (sum unit-health-list)
@@ -416,6 +461,7 @@ to place-allies
     set label name
     set objective-locations (list (.55 * max-pxcor) (.62 * min-pycor))
     set heading 90
+    set retreated false
 
     set unit-health-list unit-health-list-gold-ally-ar
     set original-health (sum unit-health-list)
@@ -429,6 +475,7 @@ to place-allies
     setxy (.56 * max-pxcor) (.45 * min-pycor)
     set name "2-168 IN"
     set label name
+    set retreated false
 
     set unit-health-list unit-health-list-gold-ally-inf
     set original-health (sum unit-health-list)
@@ -443,9 +490,12 @@ to place-allies
     set name "CCC"
     set label name
     set heading 190
+    set retreated false
 
     set unit-health-list unit-health-list-gold-ally-inf
     set original-health (sum unit-health-list)
+
+    set bonus true
   ]
 
   create-armor-allies 1
@@ -455,9 +505,12 @@ to place-allies
     setxy (.36 * max-pxcor) (.25 * min-pycor)
     set heading 190
     set name "CCC"
+    set retreated false
 
     set unit-health-list unit-health-list-gold-ally-ar
     set original-health (sum unit-health-list)
+
+    set bonus true
   ]
 
   ;; 1/6 AR (1 armor)
@@ -469,6 +522,7 @@ to place-allies
     set name "1/6 AR"
     set label name
     set heading 135
+    set retreated false
 
     set unit-health-list unit-health-list-gold-ally-ar
     set original-health (sum unit-health-list)
@@ -510,9 +564,77 @@ to go
     ]
   ]
 
+  ;; Check to see if turtles got stuck
+  ask turtles [
+    if breed != mountains [
+      ifelse xcor = old-posx and ycor = old-posy [
+        set same-pos-count same-pos-count + 1
+      ][
+        set old-posx xcor
+        set old-posy ycor
+        set same-pos-count 0
+      ]
+
+      if same-pos-count > 0 and same-pos-count mod 20 = 0 [
+        set heading random 360
+        fd 1
+        set same-pos-count 0
+      ]
+    ]
+  ]
+
+
+  ;; Update the health reporter for the plot and for the experiment run
+  set total-health-ally-inf 0
+  ask allies [ set total-health-ally-inf total-health-ally-inf + sum unit-health-list ]
+
+  set total-health-ally-ar 0
+  ask armor-allies [ set total-health-ally-ar total-health-ally-ar + sum unit-health-list ]
+
+  set total-health-axis-inf 0
+  ask axis [ set total-health-axis-inf total-health-axis-inf + sum unit-health-list ]
+
+  set total-health-axis-ar 0
+  ask armor-axis [ set total-health-axis-ar total-health-axis-ar + sum unit-health-list ]
+
+  update-retreated-count
+
   tick
 end
 
+
+to update-retreated-count
+  set total-allies-retreated 0
+  set total-axis-retreated 0
+
+  set total-allies-retreated (total-allies-retreated + (3 - count allies))
+  set total-allies-retreated (total-allies-retreated + (3 - count armor-allies))
+
+  set total-axis-retreated (total-axis-retreated + (4 - count axis))
+  set total-axis-retreated (total-axis-retreated + (4 - count armor-axis))
+
+  ask allies [
+    if retreated [
+        set total-allies-retreated total-allies-retreated + 1
+    ]
+  ]
+  ask armor-allies [
+    if retreated [
+      set total-allies-retreated total-allies-retreated + 1
+    ]
+  ]
+
+  ask axis [
+    if retreated [
+      set total-axis-retreated total-axis-retreated + 1
+    ]
+  ]
+  ask armor-axis [
+    if retreated [
+      set total-axis-retreated total-axis-retreated + 1
+    ]
+  ]
+end
 
 to perform-allies-movement [ name-of-batallion ]
   let units (turtles with [name = name-of-batallion])
@@ -527,6 +649,7 @@ to perform-allies-movement [ name-of-batallion ]
           ask move-unit [
             if (sum unit-health-list) < (original-health * attrition) [
               set retreating true
+              set retreated true
             ]
           ]
 
@@ -538,7 +661,7 @@ to perform-allies-movement [ name-of-batallion ]
           ][
               ;; Otherwise move to assist
               if reaction-delay = 0 and allies-engaged = true [
-                downhill ally-terrain-val
+                downhill ally-assist-val
               ]
           ]
       ]
@@ -558,6 +681,7 @@ to perform-axis-movement [ name-of-batallion ]
           ask move-unit [
             if (sum unit-health-list) < (original-health * attrition) [
                set retreating true
+               set retreated true
             ]
           ]
 
@@ -571,12 +695,12 @@ to perform-axis-movement [ name-of-batallion ]
 
               ;; Check if there's a link with another turtle already
               ifelse any? out-link-neighbors [
-                output-print word ([name] of self) (word "OUTLINK NEIGHBORS IS NON-EMPTY: " (out-link-neighbors))
+                ;;output-print word ([name] of self) (word "OUTLINK NEIGHBORS IS NON-EMPTY: " (out-link-neighbors))
                 ;; Attack the same guy...
                 attack self (one-of out-link-neighbors)
               ][
 
-                  output-print word ([name] of self) ": NO TARGET ACQUIRED, SEARCHING"
+                  ;;output-print word ([name] of self) ": NO TARGET ACQUIRED, SEARCHING"
                   let attacking false
                   let target nobody
                   ;; Check to see if an armor enemy is in range
@@ -595,7 +719,7 @@ to perform-axis-movement [ name-of-batallion ]
                   ;; Move towards objective city
                   ifelse attacking = false [
                       if (breed = axis and (ticks mod infantry-delay) = 0) or breed = armor-axis [
-                        output-print word ([name] of self) ": GOING DOWNHILL"
+                        ;;output-print word ([name] of self) ": GOING DOWNHILL"
                         downhill terrain-val
                       ]
                    ;; Otherwise attack the target
@@ -643,6 +767,9 @@ to check-death
 end
 
 to attack [attacker target]
+  let attacker-bonus ([bonus] of attacker)
+  let target-bonus ([bonus] of target)
+
   let attack-breed ([breed] of attacker)
   let target-breed ([breed] of target)
 
@@ -666,67 +793,104 @@ to attack [attacker target]
   ;; ============
   ;; Axis infantry attacking armor allies
   if (attack-breed) = axis and target-breed = armor-allies [
-    output-print "AXIS INF ATTACKING ARMOR ALLIES"
+    ;;output-print "AXIS INF ATTACKING ARMOR ALLIES"
 
     ;; Call function for axis infantry health
     lanchester-axis-inf-ar attack-health target-health
-    output-print word "Remaining health for axis inf is: " remaining-health
+    ;;output-print word "Remaining health for axis inf is: " remaining-health
     update-health ([unit-health-list] of attacker) remaining-health
+
+    ;; Check to see if the target had a bonus and if so tack on 10% decrease
+    if target-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask target [ set bonus false ]
+    ]
     ask attacker [ set unit-health-list remaining-health-list ]
 
     ;; Call function for ally armor health
     ;; Axis infantry attacking allied armor
     lanchester-ally-ar-inf target-health attack-health
     update-health ([unit-health-list] of target) remaining-health
+    if attacker-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask attacker [ set bonus false ]
+    ]
     ask target [ set unit-health-list remaining-health-list ]
   ]
   ;; Axis infantry attacking ally infantry
   if (attack-breed) = axis and target-breed = allies [
-    output-print "AXIS INF ATTACKING ALLY INFANTRY"
+    ;;output-print "AXIS INF ATTACKING ALLY INFANTRY"
 
     ;; Update axis health
     lanchester-axis-inf-inf attack-health target-health
-    output-print word "Remaining health for axis inf is: " remaining-health
+    ;;output-print word "Remaining health for axis inf is: " remaining-health
     update-health ([unit-health-list] of attacker) remaining-health
+    ;; Check to see if the target had a bonus and if so tack on 10% decrease
+    if target-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask target [ set bonus false ]
+    ]
     ask attacker [ set unit-health-list remaining-health-list ]
 
     ;; Update ally health
     lanchester-ally-inf-inf target-health attack-health
-    output-print word "Remaining health for ally inf is: " remaining-health
+    ;;output-print word "Remaining health for ally inf is: " remaining-health
     update-health ([unit-health-list] of target) remaining-health
+    if attacker-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask attacker [ set bonus false ]
+    ]
     ask target [ set unit-health-list remaining-health-list ]
 
   ]
   ;; Armor axis attacking armor allies
   if (attack-breed) = armor-axis and target-breed = armor-allies [
-    output-print "ARMOR AXIS ATTACKING ARMOR ALLIES"
+    ;;output-print "ARMOR AXIS ATTACKING ARMOR ALLIES"
 
     ;; Update health of axis
     axis-ar-ar attack-health target-health
-    output-print word "Remaining health for Axis AR is: " remaining-health
+    ;;output-print word "Remaining health for Axis AR is: " remaining-health
     update-health ([unit-health-list] of attacker) remaining-health
+    ;; Check to see if the target had a bonus and if so tack on 10% decrease
+    if target-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask target [ set bonus false ]
+    ]
     ask attacker [ set unit-health-list remaining-health-list ]
 
     ;; Update health of allies
     ally-ar-ar target-health attack-health
-    output-print word "Remaining health for Ally AR is: " remaining-health
+    ;;output-print word "Remaining health for Ally AR is: " remaining-health
     update-health ([unit-health-list] of target) remaining-health
+    if attacker-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask attacker [ set bonus false ]
+    ]
     ask target [ set unit-health-list remaining-health-list ]
   ]
   ;; Armor axis attacking ally infantry
   if (attack-breed) = armor-axis and target-breed = allies [
-    output-print "ARMOR AXIS ATTACKING ALLIES"
+    ;;output-print "ARMOR AXIS ATTACKING ALLIES"
 
     ;; Update health of axis
     lanchester-axis-ar-inf attack-health target-health
-    output-print word "Remaining health for Axis AR is: " remaining-health
+    ;;output-print word "Remaining health for Axis AR is: " remaining-health
     update-health ([unit-health-list] of attacker) remaining-health
+    ;; Check to see if the target had a bonus and if so tack on 10% decrease
+    if target-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask target [ set bonus false ]
+    ]
     ask attacker [ set unit-health-list remaining-health-list ]
 
     ;; Update the health of allies
     lanchester-ally-inf-ar target-health attack-health
-    output-print word "Remaining health for Ally infantry is: " remaining-health
+    ;;output-print word "Remaining health for Ally infantry is: " remaining-health
     update-health ([unit-health-list] of target) remaining-health
+    if attacker-bonus = true [
+        update-health remaining-health-list (floor ((sum remaining-health-list) * (1 - bonus-value)))
+        ask attacker [ set bonus false ]
+    ]
     ask target [ set unit-health-list remaining-health-list ]
   ]
 end
@@ -736,7 +900,8 @@ end
 ;; ====================
 ;; --------- Ally infantry attacking Axis infantry --------
 to lanchester-ally-inf-inf [ ally-inf-health axis-inf-health ]
-  let remaining-ally ((.5 * ((ally-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * axis-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff)))))
+  let remaining-ally (((.5 * ((ally-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * axis-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff))))) + ((.5 * ((ally-inf-health + (sqrt (axis-inf-eff / ally-inf-eff)) * axis-inf-health) * (exp (-1 * (sqrt (ally-inf-eff * axis-inf-eff))))))))
+  ;output-print word ("The remaining ally inf") remaining-ally
   set remaining-health remaining-ally
 end
 
@@ -772,7 +937,8 @@ end
 ;; ===================
 ;; -------- Axis infantry attacking Ally infantry -------
 to lanchester-axis-inf-inf [ axis-inf-health ally-inf-health ]
-  let remaining-axis ((.5 * ((axis-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * ally-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff)))))
+  let remaining-axis (((.5 * ((axis-inf-health - (sqrt (axis-inf-eff / ally-inf-eff)) * ally-inf-health) * (exp sqrt (ally-inf-eff * axis-inf-eff))))) + ((.5 * ((axis-inf-health + (sqrt (axis-inf-eff / ally-inf-eff)) * ally-inf-health) * (exp (-1 * (sqrt (ally-inf-eff * axis-inf-eff))))))))
+  ;output-print word ("The remaining axis inf") remaining-axis
   set remaining-health remaining-axis
 end
 
@@ -805,7 +971,7 @@ to axis-ar-ar [ axis-unit-health ally-unit-health ]
 end
 
 to update-health [ health-list health-remaining]
-  if health-remaining < 0 [
+  if health-remaining < 1 [
       set health-remaining 0
   ]
   set remaining-health-list sublist health-list 0 (health-remaining / 100)
@@ -1062,8 +1228,8 @@ true
 true
 "" ""
 PENS
-"Allies" 1.0 0 -13345367 true "" "let total-health 0\nask allies [ set total-health total-health + sum unit-health-list ]\nplot total-health"
-"Axis" 1.0 0 -2674135 true "" "let total-health 0\nask axis [ set total-health total-health + sum unit-health-list ]\nplot total-health"
+"Allies" 1.0 0 -13345367 true "" "plot total-health-ally-inf"
+"Axis" 1.0 0 -2674135 true "" "plot total-health-axis-inf"
 
 SLIDER
 1106
@@ -1178,7 +1344,7 @@ NIL
 HORIZONTAL
 
 PLOT
-1073
+1110
 429
 1370
 579
@@ -1193,8 +1359,23 @@ true
 true
 "" ""
 PENS
-"Allies" 1.0 0 -13345367 true "" "let total-health 0\nask armor-allies [ set total-health total-health + sum unit-health-list ]\nplot total-health"
-"Axis" 1.0 0 -2674135 true "" "let total-health 0\nask armor-axis [ set total-health total-health + sum unit-health-list ]\nplot total-health"
+"Allies" 1.0 0 -13345367 true "" "plot total-health-ally-ar"
+"Axis" 1.0 0 -2674135 true "" "plot total-health-axis-ar"
+
+SLIDER
+15
+630
+187
+663
+bonus-value
+bonus-value
+0
+1
+0.1
+.1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1608,6 +1789,1243 @@ NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experiment" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="500"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="0"/>
+      <value value="10"/>
+      <value value="20"/>
+      <value value="30"/>
+      <value value="40"/>
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment2" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="500"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="0"/>
+      <value value="10"/>
+      <value value="20"/>
+      <value value="30"/>
+      <value value="40"/>
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-0" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-1" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-2" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-3" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-4" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-5" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-6" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-7" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-8" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-9" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-10" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-20" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="20"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-24" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="24"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-40" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-80" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="80"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-160" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="160"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="reaction-delay-320" repetitions="1000" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="1000"/>
+    <metric>total-health-ally-inf</metric>
+    <metric>total-health-ally-ar</metric>
+    <metric>total-health-axis-inf</metric>
+    <metric>total-health-axis-ar</metric>
+    <metric>total-axis-retreated</metric>
+    <metric>total-allies-retreated</metric>
+    <enumeratedValueSet variable="ally-inf-batallion-size">
+      <value value="1000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="engagement-range">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-batallion-size">
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-batallion-size">
+      <value value="750"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="attrition">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-batallion-size">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-tank-killing-eff">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infantry-delay">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="opacity">
+      <value value="210"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="axis-ar-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="detection-range">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reaction-delay">
+      <value value="320"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="starting-health">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="ally-inf-eff">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bonus-value">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
