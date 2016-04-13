@@ -1384,22 +1384,23 @@ Netlogo simulation illustrating the Battle of Sidi Bouzid
 
 ## HOW IT WORKS
 
-In this current implementation we have created a gradient mapview of the goal terrain of the axis forces. This is provided loading map-terrain-routes.png and setting each patch member variable terrain-val based on the distance from the goal area.
+The model illustrates the battle using batallion positions, both forces use the downhill function to move based on a map-terrain.png that make the roads available. For retreat there are separate .png's that determine where the retreat location is for each side (northwest for the allies, back through the pass for the axis forces)
+- Because the downhill function doesn't always work the way we want it to (there are instances where a turtle reaches a local minimum), if the turtle remains parked for 20 ticks, I allow them to move one step in the direction they are facing.
 
 ## HOW TO USE IT
 
-Currently we are not using the side sliders and graphs, to run the simulation requires pressing setup and go.
+Currently the only input that we'd recommend changing is reaction-delay
 
 ## THINGS TO NOTICE
 
-The axis forces tend to take the less expensive route to the target in most instances
+KG Schutte arrives (becomes unhidden) after 3-168 IN is attacked by KG Reimann or KG Gerhardt, KG Stenkoff arrives after Schutte engages an ally force. (This is done to make the model run longer and more closely parallel the movement and placement of forces with that of history). Ally forces move in to the location where the first engagement is registered. If ally forces are attacked before then, they will attack using the appropriate attack equations depending on the engagement type. For each experimental run we capture the number of forces that register a retreat status (loss of 50%), as well as the remaining health for each sides forces
 
 ## THINGS TO TRY
-Currently only supports running from Setup and Go
+Currently only supports running from Setup and Go, modifying the reaction-delay text input to see how battle changes
 
 ## EXTENDING THE MODEL
 
-We plan on reincorporating combat as described by Dr McLean in class on 3/8 to reflect the macro level battle we are illustrating in our model.
+TBD
 
 ## NETLOGO FEATURES
 
